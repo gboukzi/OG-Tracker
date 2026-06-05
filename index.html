@@ -811,12 +811,9 @@ async function estimateSodium(){
 
   try{
     const mealsParam = encodeURIComponent(JSON.stringify(meals));
-    const scriptUrl = SHEET_SCRIPT + '?action=estimate_sodium&meals=' + mealsParam;
-    const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(scriptUrl);
-    const res = await fetch(proxyUrl);
-    const proxyJson = await res.json();
-    // allorigins wraps response in {contents: "..."}
-    const rawText = proxyJson.contents || JSON.stringify(proxyJson);
+    const url = 'https://og-sodium-proxy.thebluesig.workers.dev/?meals=' + mealsParam;
+    const res = await fetch(url);
+    const rawText = await res.text();
     let parsed;
     try{
       const clean = rawText.replace(/```json|```/g,'').trim();
@@ -826,7 +823,7 @@ async function estimateSodium(){
       } else if(outer.meals){
         parsed = outer;
       } else {
-        throw new Error('Unexpected shape: '+clean.slice(0,150));
+        throw new Error('Shape: '+clean.slice(0,150));
       }
     }catch(e){ throw new Error('Parse error: '+rawText.slice(0,200)); }
 
