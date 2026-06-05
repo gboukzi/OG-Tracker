@@ -472,7 +472,7 @@ hr.div{border:none;border-top:1px solid var(--border);margin:14px 0;}
 <div class="toast" id="toast"></div>
 
 <script>
-const SHEET_SCRIPT = 'https://script.google.com/macros/s/AKfycbwIpHDlbpkq6ZtO9JXA4CJzCXnT9OewN2tVcxg7R1csINOMSiUFfrIWKgVgPp7K-w0G/exec';
+const SHEET_SCRIPT = 'https://script.google.com/macros/s/AKfycbxNuOiT0HarxZu9V4D1obchVFOoWKbsHkErBOK0GtmSy9nF9Dbtk8JfwQnfQ4iR_zW3/exec';
 const PASSWORD = 'OGGodMode';
 const HABITS_LIST = [
   {id:'meditation',label:'Meditation'},{id:'no-smoking',label:'No smoking'},
@@ -883,14 +883,23 @@ async function saveEntry(){
     water:v('water'), sodium:v('sodium'), alcohol:v('alcohol'), caffeine:v('caffeine'),
     workout_type:document.getElementById('workout-toggle')?.checked?v('workout-type'):'Lazy day', workout_duration:document.getElementById('workout-toggle')?.checked?v('workout-dur'):'',
     mood:selectedMood, energy:v('energy'), stress:v('stress'), focus:v('focus'),
-    habits, notes:v('notes')
+    habits, notes:v('notes'),
+    saved_at:new Date().toISOString(),
+    row_index:window._editingRowIndex||''
   };
   try{
     await fetch(SHEET_SCRIPT,{method:'POST',body:JSON.stringify(payload)});
-    showToast('Entry saved ✓');
+    if(window._editingRowIndex){
+      showToast('Entry updated ✓');
+      window._editingRowIndex=null;
+      document.getElementById('save-btn').innerHTML='<i class="fas fa-floppy-disk"></i> Save entry';
+      document.getElementById('edit-banner')&&document.getElementById('edit-banner').remove();
+    } else {
+      showToast('Entry saved ✓');
+    }
     clearForm();
   }catch(e){showToast('Save failed — check connection');}
-  btn.disabled=false;btn.innerHTML='<i class="fas fa-floppy-disk"></i> Save entry';
+  btn.disabled=false;btn.innerHTML=window._editingRowIndex?'<i class="fas fa-floppy-disk"></i> Update entry':'<i class="fas fa-floppy-disk"></i> Save entry';
 }
 
 // CLEAR
@@ -1125,7 +1134,7 @@ function renderDashboard(){
   // DAY SELECTOR
   const sel=document.getElementById('day-selector');
   const recent=[...allEntries].reverse().slice(0,10);
-  sel.innerHTML=recent.map((r,i)=>`<button class="day-btn${i===0?' active':''}" onclick="selectDay(${i},this)">${cleanDate(r[0])}</button>`).join('');
+  sel.innerHTML=recent.map((r,i)=>`<button class="day-btn${i===0?' active':''}" data-idx="${i}" onclick="selectDay(${i},this)">${cleanDate(r[0])}</button>`).join('');
   selectedDayIdx=0;
   renderDailyReport(recent[0]);
   window._recentEntries=recent;
@@ -1135,6 +1144,127 @@ function selectDay(idx,btn){
   document.querySelectorAll('.day-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   renderDailyReport(window._recentEntries[idx]);
+}
+
+function loadEntryForEdit(r, rowIndex){
+  // Switch to edit tab
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(x=>x.classList.remove('active'));
+  document.getElementById('page-edit').classList.add('active');
+  document.querySelectorAll('.nav-tab')[1].classList.add('active');
+
+  // Unlock editor if not already
+  if(document.getElementById('editor-content').style.display==='none'){
+    document.getElementById('lock-screen').style.display='none';
+    document.getElementById('editor-content').style.display='block';
+    setDefaults(); initHabits(); initSleepSessions();
+  }
+
+  // Store row index for update
+  window._editingRowIndex = rowIndex;
+
+  // Show edit banner
+  const existing = document.getElementById('edit-banner');
+  if(existing) existing.remove();
+  const banner = document.createElement('div');
+  banner.id = 'edit-banner';
+  banner.style.cssText = 'background:rgba(90,180,255,0.1);border:1px solid rgba(90,180,255,0.3);border-radius:10px;padding:10px 14px;margin-bottom:1rem;font-size:13px;font-family:DM Mono,monospace;color:#5ab4ff;display:flex;align-items:center;gap:8px;';
+  banner.innerHTML = '<i class="fas fa-pen"></i> Editing entry for '+cleanDate(r[0])+' — changes will overwrite the original.';
+  document.getElementById('editor-content').insertBefore(banner, document.getElementById('editor-content').firstChild);
+
+  // Pre-fill date and time
+  document.getElementById('entry-date').value = cleanDate(r[0]);
+  document.getElementById('entry-time').value = cleanTime(r[1])||'';
+
+  // BP
+  // We only have averages, not individual readings — pre-fill R1 only
+  if(r[2]){document.getElementById('l1s').value=r[2];document.getElementById('l2s').value=r[2];document.getElementById('l3s').value=r[2];}
+  if(r[3]){document.getElementById('l1d').value=r[3];document.getElementById('l2d').value=r[3];document.getElementById('l3d').value=r[3];}
+  if(r[4]){document.getElementById('r1s').value=r[4];document.getElementById('r2s').value=r[4];document.getElementById('r3s').value=r[4];}
+  if(r[5]){document.getElementById('r1d').value=r[5];document.getElementById('r2d').value=r[5];document.getElementById('r3d').value=r[5];}
+  updateBP();
+
+  // Body metrics
+  if(r[6])document.getElementById('weight').value=r[6];
+  if(r[7])document.getElementById('waist').value=r[7];
+  if(r[9])document.getElementById('rhr').value=r[9];
+  calcBMI();
+
+  // Sleep quality
+  if(r[10])document.getElementById('sleep-quality').value=r[10];
+
+  // IF
+  const ifStart=cleanStr(r[12]);
+  if(ifStart){
+    const parts=ifStart.trim().split(' ');
+    const dateVal=parts.length>1?parts[0]:'today';
+    const timeVal=parts.length>1?parts[1]:parts[0];
+    const isd=document.getElementById('if-start-date');
+    if(isd)isd.value=dateVal==='yesterday'?'yesterday':'today';
+    document.getElementById('if-start').value=timeVal||'';
+    updateIF();
+  }
+
+  // Meals
+  [[r[15],r[16]],[r[17],r[18]],[r[19],r[20]],[r[21],r[22]]].forEach((m,i)=>{
+    const ti=document.getElementById('m'+(i+1)+'t');
+    const fi=document.getElementById('m'+(i+1)+'f');
+    if(ti)ti.value=cleanTime(m[0])||m[0]||'';
+    if(fi)fi.value=m[1]||'';
+  });
+  validateMealTimes();
+
+  // Nutrition
+  if(r[23])document.getElementById('water').value=r[23];
+  if(r[25])document.getElementById('alcohol').value=r[25];
+  if(r[26])document.getElementById('caffeine').value=r[26];
+
+  // Workout
+  const wtype=r[27]||'';
+  const wtoggle=document.getElementById('workout-toggle');
+  if(wtype==='Lazy day'){
+    if(wtoggle){wtoggle.checked=false;toggleWorkout(wtoggle);}
+  } else {
+    if(wtoggle){wtoggle.checked=true;toggleWorkout(wtoggle);}
+    if(wtype)document.getElementById('workout-type').value=wtype;
+    if(r[28])document.getElementById('workout-dur').value=r[28];
+  }
+
+  // Mood
+  const mood=r[29]||'';
+  if(mood){
+    document.querySelectorAll('.mood-btn').forEach(b=>{
+      if(b.textContent.toLowerCase()===mood.toLowerCase()){setMood(b,mood);}
+    });
+  }
+
+  // Mental
+  if(r[30])document.getElementById('energy').value=r[30];
+  if(r[31])document.getElementById('stress').value=r[31];
+  if(r[32])document.getElementById('focus').value=r[32];
+
+  // Habits
+  const habits=(r[33]||'').split(',').map(s=>s.trim()).filter(Boolean);
+  HABITS_LIST.forEach(h=>{
+    const cb=document.getElementById('hc-'+h.id);
+    const wrap=document.getElementById('hw-'+h.id);
+    const ck=document.getElementById('hck-'+h.id);
+    if(cb&&wrap&&ck){
+      const checked=habits.some(hab=>hab.toLowerCase()===h.label.toLowerCase());
+      cb.checked=checked;
+      wrap.classList.toggle('done',checked);
+      ck.innerHTML=checked?'✓':'';
+    }
+  });
+
+  // Notes
+  if(r[34])document.getElementById('notes').value=r[34];
+
+  // Update save button
+  document.getElementById('save-btn').innerHTML='<i class="fas fa-floppy-disk"></i> Update entry';
+
+  // Scroll to top
+  window.scrollTo({top:0,behavior:'smooth'});
 }
 
 function renderDailyReport(r){
@@ -1244,8 +1374,15 @@ function renderDailyReport(r){
     ['Notes',r[34]?`<span style="color:var(--text2);font-style:italic">${r[34]}</span>`:'—'],
   ];
 
+  // Check if within 24hrs of saved_at (col 35) or entry date (col 0)
+  const savedAt = r[35] ? new Date(r[35]) : new Date(cleanDate(r[0])+'T23:59:59');
+  const hoursAgo = (new Date() - savedAt) / 3600000;
+  const canEdit = hoursAgo <= 24;
+  const rowIndex = allEntries.indexOf(r);
+
   document.getElementById('daily-report-content').innerHTML=`
     <div class="daily-report">
+      ${canEdit?`<div style="margin-bottom:10px;text-align:right"><button onclick="loadEntryForEdit(window._recentEntries[${document.querySelectorAll('.day-btn.active')[0]?.dataset?.idx||0}], ${rowIndex})" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:var(--blue-dim);border:1px solid rgba(90,180,255,0.3);border-radius:8px;color:#5ab4ff;font-size:12px;font-family:'DM Mono',monospace;cursor:pointer"><i class="fas fa-pen"></i> Edit entry</button></div>`:''}
       ${rows.map(([k,val])=>`<div class="report-row"><span class="report-key">${k}</span><span class="report-val">${val}</span></div>`).join('')}
     </div>`;
 }
