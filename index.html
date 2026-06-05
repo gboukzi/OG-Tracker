@@ -810,19 +810,30 @@ async function estimateSodium(){
   const mealList=meals.map((m,i)=>`Meal ${i+1}${m.time?' at '+m.time:''}: ${m.food}`).join('\n');
 
   try{
-    const mealsParam = encodeURIComponent(JSON.stringify(meals));
-    const url = SHEET_SCRIPT + '?action=estimate_sodium&meals=' + mealsParam;
-    const res=await fetch(url);
+    const ANTHROPIC_API = 'https://corsproxy.io/?https://api.anthropic.com/v1/messages';
+    const mealList=meals.map((m,i)=>`Meal ${i+1}${m.time?' at '+m.time:''}: ${m.food}`).join('\n');
+    const res=await fetch(ANTHROPIC_API,{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key':'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',
+        'anthropic-version':'2023-06-01'
+      },
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        messages:[{
+          role:'user',
+          content:`You are a nutrition assistant. Estimate the sodium content in milligrams for each of these meals eaten by a Nigerian adult. Use typical Nigerian portion sizes and cooking methods. Be realistic — Nigerian food (jollof rice, stews, soups) tends to be high in sodium due to seasoning cubes like Maggi and salt.\n\nMeals:\n${mealList}\n\nRespond ONLY with valid JSON, no markdown, no explanation:\n{\n  "meals": [\n    {"name": "meal description", "sodium_mg": number, "notes": "brief reason"}\n  ],\n  "total_mg": number,\n  "rating": "low|moderate|high|very_high",\n  "advice": "one short sentence of advice"\n}`
+        }]
+      })
+    });
     const rawText=await res.text();
     let parsed;
     try{
-      // Strip markdown fences if present
-      const clean=rawText.replace(/```json|```/g,'').trim();
-      parsed=JSON.parse(clean);
-      // If Claude returned a content array (raw API response), extract text
-      if(parsed.content&&parsed.content[0]&&parsed.content[0].text){
-        parsed=JSON.parse(parsed.content[0].text.replace(/```json|```/g,'').trim());
-      }
+      const data=JSON.parse(rawText);
+      const text=data.content[0].text.replace(/\`\`\`json|\`\`\`/g,'').trim();
+      parsed=JSON.parse(text);
     }catch(e){ throw new Error('Parse error: '+rawText.slice(0,200)); }
 
     // Store sodium value for save
