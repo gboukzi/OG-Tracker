@@ -930,6 +930,13 @@ async function saveEntry(){
     } else {
       showToast('Entry saved ✓');
       clearForm();
+      setTimeout(()=>{
+        document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+        document.querySelectorAll('.nav-tab').forEach(x=>x.classList.remove('active'));
+        document.getElementById('page-dashboard').classList.add('active');
+        document.querySelectorAll('.nav-tab')[0].classList.add('active');
+        loadDashboard();
+      }, 800);
     }
   }catch(e){showToast('Save failed — check connection');}
   btn.disabled=false;btn.innerHTML=(window._editingRowIndex !== null && window._editingRowIndex !== undefined && window._editingRowIndex !== '')?'<i class="fas fa-floppy-disk"></i> Update entry':'<i class="fas fa-floppy-disk"></i> Save entry';
