@@ -1193,6 +1193,28 @@ function loadEntryForEdit(r, rowIndex){
   // Sleep quality
   if(r[10])document.getElementById('sleep-quality').value=r[10];
 
+  // Sleep sessions — parse JSON and restore each session
+  const sleepSessions=parseSleepSessions(r[11]);
+  if(sleepSessions&&sleepSessions.length){
+    initSleepSessions();
+    for(let i=1;i<sleepSessions.length;i++)addSleepSession();
+    sleepSessions.forEach((s,i)=>{
+      const idx=i+1;
+      const now=new Date();
+      const todayStr=now.toISOString().slice(0,10);
+      const yesterdayStr=new Date(now-86400000).toISOString().slice(0,10);
+      const sdEl=document.getElementById('ss'+idx+'-date');
+      const stEl=document.getElementById('ss'+idx+'-start');
+      const wdEl=document.getElementById('ss'+idx+'-wdate');
+      const wtEl=document.getElementById('ss'+idx+'-end');
+      if(sdEl)sdEl.value=(s.sleepDate===yesterdayStr)?yesterdayStr:todayStr;
+      if(stEl&&s.sleepTime)stEl.value=s.sleepTime;
+      if(wdEl)wdEl.value=(s.wakeDate===yesterdayStr)?yesterdayStr:todayStr;
+      if(wtEl&&s.wakeTime)wtEl.value=s.wakeTime;
+      calcSleepDuration(idx);
+    });
+  }
+
   // IF
   const ifStart=cleanStr(r[12]);
   if(ifStart){
@@ -1231,10 +1253,12 @@ function loadEntryForEdit(r, rowIndex){
   }
 
   // Mood
-  const mood=r[29]||'';
+  const mood=cleanStr(r[29])||'';
   if(mood){
     document.querySelectorAll('.mood-btn').forEach(b=>{
-      if(b.textContent.toLowerCase()===mood.toLowerCase()){setMood(b,mood);}
+      if(b.textContent.trim().toLowerCase()===mood.trim().toLowerCase()){
+        setMood(b,mood.trim().toLowerCase());
+      }
     });
   }
 
