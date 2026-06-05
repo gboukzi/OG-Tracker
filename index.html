@@ -130,6 +130,21 @@ hr.div{border:none;border-top:1px solid var(--border);margin:14px 0;}
 .habit-pill{font-size:11px;padding:2px 9px;border-radius:20px;background:var(--accent-dim);color:var(--accent);border:1px solid rgba(200,240,90,0.2);}
 .empty-state{text-align:center;padding:3rem 1rem;color:var(--text3);font-family:'DM Mono',monospace;font-size:14px;}
 .loading{text-align:center;padding:2rem;color:var(--text3);font-family:'DM Mono',monospace;font-size:13px;}
+/* SODIUM ESTIMATOR */
+.sodium-estimator{margin-top:12px;}
+.btn-estimate{display:flex;align-items:center;gap:7px;padding:9px 16px;background:var(--accent-dim);border:1px solid rgba(200,240,90,0.3);border-radius:var(--radius);color:var(--accent);font-size:13px;font-family:'DM Mono',monospace;cursor:pointer;transition:all 0.15s;width:100%;justify-content:center;}
+.btn-estimate:hover{background:rgba(200,240,90,0.2);}
+.btn-estimate:disabled{opacity:0.5;cursor:not-allowed;}
+.sodium-result{margin-top:10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-size:13px;font-family:'DM Mono',monospace;}
+.sodium-result-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.sodium-total{font-size:1.2rem;font-weight:500;}
+.sodium-total.green{color:var(--green);}
+.sodium-total.amber{color:var(--amber);}
+.sodium-total.red{color:var(--red);}
+.sodium-meal-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px;color:var(--text2);}
+.sodium-meal-row:last-child{border-bottom:none;}
+.sodium-meal-name{color:var(--text);max-width:65%;}
+.sodium-note{font-size:11px;color:var(--text3);margin-top:8px;font-style:italic;}
 /* TOGGLE */
 .toggle-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
 .toggle-label{font-size:13px;color:var(--text2);font-family:'DM Mono',monospace;}
@@ -366,11 +381,17 @@ hr.div{border:none;border-top:1px solid var(--border);margin:14px 0;}
         <div class="meal-row"><div class="field"><label class="fl">Time</label><input type="time" id="m4t" oninput="validateMealTimes()"></div><div class="field"><label class="fl">What you ate</label><input type="text" id="m4f" placeholder="e.g. Protein shake"></div></div>
         <div class="val-msg" id="val-meals-msg" style="margin-bottom:8px"><i class="fas fa-triangle-exclamation"></i><span></span></div>
         <hr class="div">
-        <div class="g4">
+        <div class="g3">
           <div class="field"><label class="fl">Water (L)</label><input type="number" id="water" placeholder="2.5" step="0.1"></div>
-          <div class="field"><label class="fl">Sodium (mg)</label><input type="number" id="sodium" placeholder="1500"></div>
           <div class="field"><label class="fl">Alcohol (units)</label><input type="number" id="alcohol" placeholder="0" step="0.5"></div>
           <div class="field"><label class="fl">Caffeine (cups)</label><input type="number" id="caffeine" placeholder="0"></div>
+        </div>
+        <div class="sodium-estimator">
+          <button class="btn-estimate" id="sodium-btn" onclick="estimateSodium()">
+            <i class="fas fa-flask"></i> Estimate sodium from meals
+          </button>
+          <div id="sodium-result" style="display:none"></div>
+          <input type="hidden" id="sodium" value="">
         </div>
       </div>
     </div>
@@ -711,6 +732,8 @@ function toggleWorkout(cb){
     label.textContent = 'Lazy day 😅';
     initSleepSessions();
   const isd=document.getElementById('if-start-date');if(isd)isd.value='today';const ifa=document.getElementById('if-adhered');if(ifa)ifa.value='';const ifad=document.getElementById('if-adhered-display');if(ifad){ifad.textContent='—';ifad.style.color='var(--text3)';}
+  document.getElementById('sodium-result').style.display='none';
+  document.getElementById('sodium-btn').innerHTML='<i class="fas fa-flask"></i> Estimate sodium from meals';
   document.getElementById('workout-type').value='';
     document.getElementById('workout-dur').value='';
     document.getElementById('workout-int').value='';
@@ -770,6 +793,88 @@ function updateIF(){
 }
 
 // SAVE
+async function estimateSodium(){
+  const meals=[];
+  for(let i=1;i<=4;i++){
+    const t=v('m'+i+'t'), f=v('m'+i+'f');
+    if(f) meals.push({time:t||'', food:f});
+  }
+  if(!meals.length){showToast('Log at least one meal first');return;}
+
+  const btn=document.getElementById('sodium-btn');
+  const resultDiv=document.getElementById('sodium-result');
+  btn.disabled=true;
+  btn.innerHTML='<i class="fas fa-circle-notch fa-spin"></i> Estimating…';
+  resultDiv.style.display='none';
+
+  const mealList=meals.map((m,i)=>`Meal ${i+1}${m.time?' at '+m.time:''}: ${m.food}`).join('\n');
+
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        messages:[{
+          role:'user',
+          content:`You are a nutrition assistant. Estimate the sodium content in milligrams for each of these meals eaten by a Nigerian adult. Use typical Nigerian portion sizes and cooking methods. Be realistic — Nigerian food (jollof rice, stews, soups) tends to be high in sodium due to seasoning cubes like Maggi and salt.
+
+Meals:
+${mealList}
+
+Respond ONLY with valid JSON, no markdown, no explanation:
+{
+  "meals": [
+    {"name": "meal description", "sodium_mg": number, "notes": "brief reason"}
+  ],
+  "total_mg": number,
+  "rating": "low|moderate|high|very_high",
+  "advice": "one short sentence of advice"
+}`
+        }]
+      })
+    });
+    const data=await res.json();
+    const text=data.content.filter(b=>b.type==='text').map(b=>b.text).join('');
+    const parsed=JSON.parse(text.replace(/```json|```/g,'').trim());
+
+    // Store sodium value for save
+    document.getElementById('sodium').value=parsed.total_mg||'';
+
+    // Colour coding
+    const total=parsed.total_mg||0;
+    let cls='green', label='Within target';
+    if(total>2300&&total<=3000){cls='amber';label='Above target';}
+    else if(total>3000){cls='red';label='High — watch BP';}
+
+    // Render result
+    const mealRows=parsed.meals.map(m=>`
+      <div class="sodium-meal-row">
+        <span class="sodium-meal-name">${m.name}</span>
+        <span>${m.sodium_mg.toLocaleString()} mg</span>
+      </div>`).join('');
+
+    resultDiv.innerHTML=`
+      <div class="sodium-result">
+        <div class="sodium-result-header">
+          <span style="color:var(--text2);font-size:11px">ESTIMATED SODIUM</span>
+          <span class="sodium-total ${cls}">${total.toLocaleString()} mg <span style="font-size:12px">(${label})</span></span>
+        </div>
+        ${mealRows}
+        <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:12px;color:var(--text2)">${parsed.advice||''}</div>
+        <div class="sodium-note">Estimates only — actual values vary by recipe and portion size. Daily limit: 2,300 mg.</div>
+      </div>`;
+    resultDiv.style.display='block';
+    showToast('Sodium estimated ✓');
+  }catch(err){
+    showToast('Estimation failed — check connection');
+    console.error(err);
+  }
+  btn.disabled=false;
+  btn.innerHTML='<i class="fas fa-flask"></i> Re-estimate sodium';
+}
+
 async function saveEntry(){
   if(!validateAll())return;
   const btn=document.getElementById('save-btn');
@@ -1115,7 +1220,15 @@ function renderDailyReport(r){
     ['Fast duration',fastDur||'—'],
     ['Stuck to window',(()=>{const v=cleanStr(r[14]);if(!v)return'—';if(v==='yes')return'✅ Yes';if(v==='no')return'❌ No';if(v==='partial')return'⚠️ Partially';return v||'—';})()],
     ['Water',r[23]?r[23]+' L':'—'],
-    ['Sodium',r[24]?r[24]+' mg':'—'],
+    ['Sodium',(()=>{
+      const s=parseFloat(r[24]);
+      if(!s||isNaN(s))return'—';
+      let cls='',label='';
+      if(s<=2300){cls='color:var(--green)';label='✓ Within target';}
+      else if(s<=3000){cls='color:var(--amber)';label='↑ Above target';}
+      else{cls='color:var(--red)';label='⚠ High';}
+      return s.toLocaleString()+' mg <span style="'+cls+';font-size:11px">('+label+')</span>';
+    })()],
     ['Alcohol',r[25]?r[25]+' units':'—'],
     ['Caffeine',r[26]?r[26]+' cups':'—'],
     ['Workout',r[27]==='Lazy day'?'<span class="lazy-tag">😅 Lazy day</span>':r[27]==='Rest day'?'<span class="rest-tag">💤 Rest day</span>':r[27]?(r[27]+(r[28]?' · '+r[28]+' min':'')):'—'],
