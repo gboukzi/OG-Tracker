@@ -879,14 +879,14 @@ function renderDashboard(){
   // STAT CARDS
   const lSys=parseFloat(latest[2]),lDia=parseFloat(latest[3]);
   const rSys=parseFloat(latest[4]),rDia=parseFloat(latest[5]);
-  const weight=latest[6],mood=latest[30];
+  const weight=latest[6],mood=latest[29];
   const highBP=(lSys>=140||lDia>=90||rSys>=140||rDia>=90);
   const statsData=[
     {label:'BP (Left avg)',val:(lSys&&lDia)?lSys+'/'+lDia:'—',sub:'mmHg',cls:highBP?'red':''},
     {label:'BP (Right avg)',val:(rSys&&rDia)?rSys+'/'+rDia:'—',sub:'mmHg',cls:highBP?'red':''},
     {label:'Weight',val:weight||'—',sub:'kg',cls:''},
     {label:'Mood',val:mood||'—',sub:'today',cls:''},
-    {label:'Energy',val:latest[31]||'—',sub:'/ 10',cls:''},
+    {label:'Energy',val:latest[30]||'—',sub:'/ 10',cls:''},
     {label:'Sleep',val:latest[10]||'—',sub:'/ 10 quality',cls:''},
   ];
   document.getElementById('stats-row').innerHTML=statsData.map(s=>`
@@ -941,9 +941,9 @@ function renderDailyReport(r){
   if(!r){document.getElementById('daily-report-content').innerHTML='<div class="empty-state">No data for this day.</div>';return;}
   const lSys=parseFloat(r[2]),lDia=parseFloat(r[3]),rSys=parseFloat(r[4]),rDia=parseFloat(r[5]);
   const highL=(lSys>=140||lDia>=90),highR=(rSys>=140||rDia>=90);
-  const meals=[[r[16],r[17]],[r[18],r[19]],[r[20],r[21]],[r[22],r[23]]].filter(m=>m[1]);
-  const habits=(r[34]||'').split(',').map(s=>s.trim()).filter(Boolean);
-  const fastStart=r[13],eatOpen=r[14],eatClose=r[15];
+  const meals=[[r[15],r[16]],[r[17],r[18]],[r[19],r[20]],[r[21],r[22]]].filter(m=>m[1]);
+  const habits=(r[33]||'').split(',').map(s=>s.trim()).filter(Boolean);
+  const fastStart=r[12],eatOpen=r[13],eatClose=r[14];
   let fastDur='';
   if(fastStart&&eatOpen){const s=timeToMins(fastStart),o=timeToMins(eatOpen);const mins=o>=s?o-s:(1440-s)+o;fastDur=minsToHM(mins);}
 
@@ -951,15 +951,15 @@ function renderDailyReport(r){
     ['Date',r[0]+(r[1]?' · '+r[1]:'')],
     ['BP Left',(lSys&&lDia)?`<span class="bp-badge${highL?' high':''}">${lSys}/${lDia}</span> mmHg`:'—'],
     ['BP Right',(rSys&&rDia)?`<span class="bp-badge${highR?' high':''}">${rSys}/${rDia}</span> mmHg`:'—'],
-    ['Weight',r[6]?r[6]+' kg':'—'],
+    ['Weight',r[6]?r[6]+' kg'+(r[8]?' · Body fat: '+r[8]+'%':''):'—'],
     ...(()=>{
-      const sess = parseSleepSessions(r[11]);
-      const q = r[10] ? ' · Quality: '+r[10]+'/10' : '';
-      if(!sess||!sess.length) return [['Sleep','—']];
-      const rows = [];
+      const sess=parseSleepSessions(r[11]);
+      const q=r[10]?' · Quality: '+r[10]+'/10':'';
+      if(!sess||!sess.length)return[['Sleep','—']];
+      const out=[];
       sess.forEach((s,i)=>{
-        if(!s.sleepTime&&!s.wakeTime) return;
-        const label = i===0 ? '🌙 Nightly sleep' : '😴 Nap '+i;
+        if(!s.sleepTime&&!s.wakeTime)return;
+        const label=i===0?'🌙 Nightly sleep':'😴 Nap '+i;
         let dur='';
         if(s.sleepDate&&s.sleepTime&&s.wakeDate&&s.wakeTime){
           const sd=new Date(s.sleepDate+'T'+s.sleepTime);
@@ -969,24 +969,23 @@ function renderDailyReport(r){
         }
         const timeStr=s.sleepTime&&s.wakeTime?s.sleepTime+' → '+s.wakeTime:'';
         const val=[timeStr,dur?'('+dur+')':''].filter(Boolean).join(' ')+(i===0?q:'');
-        rows.push([label,val||'—']);
+        out.push([label,val||'—']);
       });
-      if(sess.length>1){
-        const total=calcTotalSleepHours(sess);
-        if(total>0)rows.push(['Total sleep',minsToHM(Math.round(total*60))]);
-      }
-      return rows.length?rows:[['Sleep','—']];
+      if(sess.length>1){const total=calcTotalSleepHours(sess);if(total>0)out.push(['Total sleep',minsToHM(Math.round(total*60))]);}
+      return out.length?out:[['Sleep','—']];
     })(),
     ['IF fast',fastDur||'—'],
     ['Eating window',(eatOpen&&eatClose)?eatOpen+' – '+eatClose:'—'],
-    ['Water',r[24]?r[24]+' L':'—'],
-    ['Sodium',r[25]?r[25]+' mg':'—'],
-    ['Workout', r[28]==='Lazy day'?'<span class="lazy-tag">😅 Lazy day</span>':r[28]==='Rest day'?'<span class="rest-tag">💤 Rest day</span>':r[28]?(r[28]+(r[29]?' · '+r[29]+' min':'')):'—'],
-    ['Mood',r[30]||'—'],
-    ['Energy / Stress / Focus',(r[31]||'—')+' / '+(r[32]||'—')+' / '+(r[33]||'—')],
+    ['Water',r[23]?r[23]+' L':'—'],
+    ['Sodium',r[24]?r[24]+' mg':'—'],
+    ['Alcohol',r[25]?r[25]+' units':'—'],
+    ['Caffeine',r[26]?r[26]+' cups':'—'],
+    ['Workout',r[27]==='Lazy day'?'<span class="lazy-tag">😅 Lazy day</span>':r[27]==='Rest day'?'<span class="rest-tag">💤 Rest day</span>':r[27]?(r[27]+(r[28]?' · '+r[28]+' min':'')):'—'],
+    ['Mood',r[29]||'—'],
+    ['Energy / Stress / Focus',(r[30]||'—')+' / '+(r[31]||'—')+' / '+(r[32]||'—')],
     ['Meals',meals.length?`<div class="meals-list">${meals.map(m=>`<div>${m[0]?m[0]+' — ':''}${m[1]}</div>`).join('')}</div>`:'—'],
     ['Habits',habits.length?`<div class="habits-pills">${habits.map(h=>`<span class="habit-pill">${h}</span>`).join('')}</div>`:'—'],
-    ['Notes',r[35]?`<span style="color:var(--text2);font-style:italic">${r[35]}</span>`:'—'],
+    ['Notes',r[34]?`<span style="color:var(--text2);font-style:italic">${r[34]}</span>`:'—'],
   ];
 
   document.getElementById('daily-report-content').innerHTML=`
