@@ -908,12 +908,12 @@ async function saveEntry(){
     mood:selectedMood, energy:v('energy'), stress:v('stress'), focus:v('focus'),
     habits, notes:v('notes'),
     saved_at:new Date().toISOString(),
-    row_index:window._editingRowIndex||''
+    row_index:(window._editingRowIndex !== null && window._editingRowIndex !== undefined && window._editingRowIndex !== '') ? window._editingRowIndex : ''
   };
   try{
     console.log('Saving payload row_index:', payload.row_index, 'rawIndex on entry:', window._editingRowIndex);
     await fetch(SHEET_SCRIPT,{method:'POST',body:JSON.stringify(payload)});
-    if(window._editingRowIndex){
+    if(window._editingRowIndex !== null && window._editingRowIndex !== undefined && window._editingRowIndex !== ''){
       window._editingRowIndex=null;
       document.getElementById('save-btn').innerHTML='<i class="fas fa-floppy-disk"></i> Save entry';
       document.getElementById('edit-banner')&&document.getElementById('edit-banner').remove();
@@ -932,7 +932,7 @@ async function saveEntry(){
       clearForm();
     }
   }catch(e){showToast('Save failed — check connection');}
-  btn.disabled=false;btn.innerHTML=window._editingRowIndex?'<i class="fas fa-floppy-disk"></i> Update entry':'<i class="fas fa-floppy-disk"></i> Save entry';
+  btn.disabled=false;btn.innerHTML=(window._editingRowIndex !== null && window._editingRowIndex !== undefined && window._editingRowIndex !== '')?'<i class="fas fa-floppy-disk"></i> Update entry':'<i class="fas fa-floppy-disk"></i> Save entry';
 }
 
 // CLEAR
@@ -1271,11 +1271,13 @@ function loadEntryForEdit(r, rowIndex){
     if(fi)fi.value=m[1]||'';
   });
   validateMealTimes();
+  // Auto-estimate sodium since meals are pre-filled
+  setTimeout(()=>estimateSodium(true), 800);
 
   // Nutrition
-  if(r[23])document.getElementById('water').value=r[23];
-  if(r[25])document.getElementById('alcohol').value=r[25];
-  if(r[26])document.getElementById('caffeine').value=r[26];
+  if(r[23]!==''&&r[23]!==null&&r[23]!==undefined)document.getElementById('water').value=r[23];
+  if(r[25]!==''&&r[25]!==null&&r[25]!==undefined)document.getElementById('alcohol').value=r[25];
+  if(r[26]!==''&&r[26]!==null&&r[26]!==undefined)document.getElementById('caffeine').value=r[26];
 
   // Workout
   const wtype=r[27]||'';
@@ -1322,6 +1324,7 @@ function loadEntryForEdit(r, rowIndex){
 
   // Update save button
   document.getElementById('save-btn').innerHTML='<i class="fas fa-floppy-disk"></i> Update entry';
+  console.log('Edit mode set, _editingRowIndex:', window._editingRowIndex);
 
   // Scroll to top
   window.scrollTo({top:0,behavior:'smooth'});
@@ -1427,8 +1430,8 @@ function renderDailyReport(r){
       else{col='var(--red)';txt=s.toLocaleString()+' mg — '+diff.toLocaleString()+' mg above your 2,300 mg daily target. Watch BP.';}
       return '<span style="color:'+col+'">'+txt+'</span>';
     })()],
-    ['Alcohol',r[25]?r[25]+' units':'—'],
-    ['Caffeine',r[26]?r[26]+' cups':'—'],
+    ['Alcohol',(()=>{const a=parseFloat(r[25]);return(!isNaN(a)&&r[25]!==''&&r[25]!==null)?a+' units':'—';})()],
+    ['Caffeine',(()=>{const a=parseFloat(r[26]);return(!isNaN(a)&&r[26]!==''&&r[26]!==null)?a+' cups':'—';})()],
     ['Workout',r[27]==='Lazy day'?'<span class="lazy-tag">😅 Lazy day</span>':r[27]==='Rest day'?'<span class="rest-tag">💤 Rest day</span>':r[27]?(r[27]+(r[28]?' · '+r[28]+' min':'')):'—'],
     ['Mood',cleanStr(r[29])||'—'],
     ['Energy / Stress / Focus',(r[30]||'—')+' / '+(r[31]||'—')+' / '+(r[32]||'—')],
