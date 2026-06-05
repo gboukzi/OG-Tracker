@@ -988,7 +988,10 @@ function renderDashboard(){
     {label:'Mood',val:mood||'—',sub:'today',cls:''},
     {label:'Energy',val:latest[30]||'—',sub:'/ 10',cls:''},
     {label:'Sleep',val:latest[10]||'—',sub:'/ 10 quality',cls:''},
-    {label:'BMI',val:(()=>{const w=parseFloat(latest[6]);if(!w||isNaN(w))return'—';const b=latest[8]?parseFloat(latest[8]):Math.round(w/(1.97*1.97)*10)/10;return b;})(),sub:'body mass index',cls:''},
+    {label:'BMI',
+      val:(()=>{const w=parseFloat(latest[6]);if(!w||isNaN(w))return'—';const b=latest[8]?parseFloat(latest[8]):Math.round(w/(1.97*1.97)*10)/10;return b;})(),
+      sub:(()=>{const w=parseFloat(latest[6]);if(!w||isNaN(w))return'body mass index';const b=latest[8]?parseFloat(latest[8]):Math.round(w/(1.97*1.97)*10)/10;if(b<18.5)return'Underweight';if(b<25)return'Normal ✓';if(b<30)return'Overweight';return'Obese';})(),
+      cls:(()=>{const w=parseFloat(latest[6]);if(!w||isNaN(w))return'';const b=latest[8]?parseFloat(latest[8]):Math.round(w/(1.97*1.97)*10)/10;if(b<18.5)return'';if(b<25)return'green';if(b<30)return'';return'red';})()},
   ];
   document.getElementById('stats-row').innerHTML=statsData.map(s=>`
     <div class="stat-card">
