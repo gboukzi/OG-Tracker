@@ -295,11 +295,11 @@ hr.div{border:none;border-top:1px solid var(--border);margin:14px 0;}
       <div class="card-header"><i class="fas fa-weight-scale"></i><span class="ch-title">Body metrics</span></div>
       <div class="card-body">
         <div class="g3">
-          <div class="field"><label class="fl">Weight (kg)</label><input type="number" id="weight" placeholder="85.2" step="0.1"></div>
+          <div class="field"><label class="fl">Weight (kg)</label><input type="number" id="weight" placeholder="85.2" step="0.1" oninput="calcBMI()"></div>
           <div class="field"><label class="fl">Waist (cm)</label><input type="number" id="waist" placeholder="92" step="0.5"></div>
           <div class="field"><label class="fl">Chest (cm)</label><input type="number" id="chest" placeholder="100" step="0.5"></div>
           <div class="field"><label class="fl">Hips (cm)</label><input type="number" id="hips" placeholder="98" step="0.5"></div>
-          <div class="field"><label class="fl">Body fat (%)</label><input type="number" id="bodyfat" placeholder="22" step="0.1"></div>
+          <div class="field"><label class="fl">BMI <span style="color:var(--accent);font-size:10px">auto</span></label><input type="number" id="bmi" placeholder="—" step="0.1" readonly style="color:var(--accent);cursor:default"><div style="font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;margin-top:4px" id="bmi-category"></div></div>
           <div class="field"><label class="fl">Resting HR (bpm)</label><input type="number" id="rhr" placeholder="65"></div>
         </div>
       </div>
@@ -498,6 +498,24 @@ function setDefaults(){
   document.getElementById('entry-time').value=now.toTimeString().slice(0,5);
 }
 
+// BMI AUTO-CALC (height 197cm)
+function calcBMI(){
+  const weight = parseFloat(document.getElementById('weight')?.value);
+  const bmiEl = document.getElementById('bmi');
+  const catEl = document.getElementById('bmi-category');
+  if(!weight || isNaN(weight)){ bmiEl.value=''; catEl.textContent=''; return; }
+  const bmi = weight / (1.97 * 1.97);
+  const rounded = Math.round(bmi * 10) / 10;
+  bmiEl.value = rounded;
+  let cat='', col='';
+  if(bmi < 18.5){ cat='Underweight'; col='var(--blue)'; }
+  else if(bmi < 25){ cat='Normal weight ✓'; col='var(--accent)'; }
+  else if(bmi < 30){ cat='Overweight'; col='var(--amber)'; }
+  else { cat='Obese'; col='var(--red)'; }
+  catEl.textContent = cat;
+  catEl.style.color = col;
+}
+
 // ── VALIDATION ───────────────────────────────────────────────
 function setFieldState(id, state, msg){
   const el=document.getElementById(id);
@@ -681,7 +699,7 @@ async function saveEntry(){
     password:PASSWORD,
     date:v('entry-date')||new Date().toISOString().slice(0,10), time:v('entry-time'),
     l_sys:la||'', l_dia:ld||'', r_sys:ra||'', r_dia:rd||'',
-    weight:v('weight'), waist:v('waist'), bodyfat:v('bodyfat'), rhr:v('rhr'),
+    weight:v('weight'), waist:v('waist'), bodyfat:v('bmi'), rhr:v('rhr'),
     sleep_quality:v('sleep-quality'), sleep_sessions:getSleepSessionsJSON(),
     if_start:v('if-start'), if_open:v('if-open'), if_close:v('if-close'),
     meal1_time:v('m1t'), meal1_food:v('m1f'), meal2_time:v('m2t'), meal2_food:v('m2f'),
@@ -702,7 +720,7 @@ async function saveEntry(){
 // CLEAR
 function clearForm(){
   ['l1s','l2s','l3s','l1d','l2d','l3d','l1p','l2p','l3p','r1s','r2s','r3s','r1d','r2d','r3d','r1p','r2p','r3p',
-   'weight','waist','chest','hips','bodyfat','rhr','sleep-quality',
+   'weight','waist','chest','hips','bmi','rhr','sleep-quality',
    'if-start','if-open','if-close','m1t','m1f','m2t','m2f','m3t','m3f','m4t','m4f',
    'water','sodium','alcohol','caffeine','workout-dur','workout-int','energy','stress','focus','notes']
    .forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
@@ -860,7 +878,7 @@ async function loadDashboard(){
   try{
     const res=await fetch(SHEET_SCRIPT);
     const raw=await res.json();
-    // raw is array of rows; each row: [date,time,l_sys,l_dia,r_sys,r_dia,weight,waist,bodyfat,rhr,sleep_q,sleep_sessions,if_start,if_open,if_close,m1t,m1f,m2t,m2f,m3t,m3f,m4t,m4f,water,sodium,alcohol,caffeine,wtype,wdur,mood,energy,stress,focus,habits,notes]
+    // raw is array of rows; each row: [date,time,l_sys,l_dia,r_sys,r_dia,weight,waist,bmi,rhr,sleep_q,sleep_sessions,if_start,if_open,if_close,m1t,m1f,m2t,m2f,m3t,m3f,m4t,m4f,water,sodium,alcohol,caffeine,wtype,wdur,mood,energy,stress,focus,habits,notes]
     if(!raw||!raw.length){loading.style.display='none';empty.style.display='block';return;}
     allEntries=raw.filter(r=>r[0]&&r[0]!=='').reverse(); // oldest first for charts
     renderDashboard();
@@ -888,6 +906,7 @@ function renderDashboard(){
     {label:'Mood',val:mood||'—',sub:'today',cls:''},
     {label:'Energy',val:latest[30]||'—',sub:'/ 10',cls:''},
     {label:'Sleep',val:latest[10]||'—',sub:'/ 10 quality',cls:''},
+    {label:'BMI',val:(()=>{const w=parseFloat(latest[6]);if(!w||isNaN(w))return'—';const b=latest[8]?parseFloat(latest[8]):Math.round(w/(1.97*1.97)*10)/10;return b;})(),sub:'body mass index',cls:''},
   ];
   document.getElementById('stats-row').innerHTML=statsData.map(s=>`
     <div class="stat-card">
@@ -951,7 +970,18 @@ function renderDailyReport(r){
     ['Date',r[0]+(r[1]?' · '+r[1]:'')],
     ['BP Left',(lSys&&lDia)?`<span class="bp-badge${highL?' high':''}">${lSys}/${lDia}</span> mmHg`:'—'],
     ['BP Right',(rSys&&rDia)?`<span class="bp-badge${highR?' high':''}">${rSys}/${rDia}</span> mmHg`:'—'],
-    ['Weight',r[6]?r[6]+' kg'+(r[8]?' · Body fat: '+r[8]+'%':''):'—'],
+    ['Weight',(()=>{
+      const w=parseFloat(r[6]);
+      if(!w||isNaN(w))return'—';
+      const bmiStored=parseFloat(r[8]);
+      const bmi=bmiStored&&!isNaN(bmiStored)?bmiStored:Math.round(w/(1.97*1.97)*10)/10;
+      let cat='',col='';
+      if(bmi<18.5){cat='Underweight';col='var(--blue)';}
+      else if(bmi<25){cat='Normal ✓';col='var(--green)';}
+      else if(bmi<30){cat='Overweight';col='var(--amber)';}
+      else{cat='Obese';col='var(--red)';}
+      return w+' kg · BMI: <strong>'+bmi+'</strong> <span style="color:'+col+';font-size:11px">('+cat+')</span>';
+    })()],
     ...(()=>{
       const sess=parseSleepSessions(r[11]);
       const q=r[10]?' · Quality: '+r[10]+'/10':'';
