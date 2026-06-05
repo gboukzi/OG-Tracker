@@ -1156,12 +1156,11 @@ function renderDailyReport(r){
       if(mins>0){
         fastDur=minsToHM(mins)+' (last meal → 12:00 PM)';
       } else {
-        // Last meal was during or after window — show fast until next window
-        const nextOpenDt=new Date(sd.getTime()+17*60*60*1000);
+        // Last meal was during or after window — fast runs to 12:00 PM tomorrow
+        const tomorrowStr=new Date(new Date(todayStr).getTime()+86400000).toISOString().slice(0,10);
+        const nextOpenDt=new Date(tomorrowStr+'T12:00');
         const totalFast=Math.round((nextOpenDt-sd)/60000);
-        const nextHH=String(nextOpenDt.getHours()).padStart(2,'0');
-        const nextMM=String(nextOpenDt.getMinutes()).padStart(2,'0');
-        fastDur=minsToHM(totalFast)+' target (next window: '+nextHH+':'+nextMM+' tomorrow)';
+        fastDur=minsToHM(totalFast)+' until next window (12:00 PM tomorrow)';
       }
     }
   }
@@ -1207,7 +1206,22 @@ function renderDailyReport(r){
     ['Eating window','12:00 PM – 7:00 PM (fixed)'],
     ['Last meal',cleanStr(r[12])||'—'],
     ['Fast duration',fastDur||'—'],
-    ['Stuck to window',(()=>{const v=cleanStr(r[14]);if(!v)return'—';if(v==='yes')return'✅ Yes';if(v==='no')return'❌ No';if(v==='partial')return'⚠️ Partially';return v||'—';})()],
+    ['Stuck to window',(()=>{
+      // Derive from meal times against fixed 12:00-19:00 window
+      const mealTimes=[[r[15],r[16]],[r[17],r[18]],[r[19],r[20]],[r[21],r[22]]]
+        .filter(m=>m[1]&&m[0]);
+      if(!mealTimes.length)return'—';
+      const OPEN=720,CLOSE=1140;
+      let inside=0,outside=0;
+      mealTimes.forEach(m=>{
+        const mins=timeToMins(cleanTime(m[0])||m[0]);
+        if(mins===null)return;
+        if(mins>=OPEN&&mins<=CLOSE)inside++;else outside++;
+      });
+      if(outside===0)return'✅ Yes';
+      if(inside===0)return'❌ No';
+      return'⚠️ Partially';
+    })()],
     ['Water',r[23]?r[23]+' L':'—'],
     ['Sodium',(()=>{
       const s=parseFloat(r[24]);
