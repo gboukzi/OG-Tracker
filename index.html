@@ -375,10 +375,10 @@ hr.div{border:none;border-top:1px solid var(--border);margin:14px 0;}
       <div class="card-header"><i class="fas fa-bowl-food"></i><span class="ch-title">Nutrition & meals</span></div>
       <div class="card-body">
         <label class="fl" style="margin-bottom:10px">Meals</label>
-        <div class="meal-row"><div class="field"><label class="fl">Time</label><input type="time" id="m1t" oninput="validateMealTimes()"></div><div class="field"><label class="fl">What you ate</label><input type="text" id="m1f" placeholder="e.g. Jollof rice, chicken"></div></div>
-        <div class="meal-row"><div class="field"><label class="fl">Time</label><input type="time" id="m2t" oninput="validateMealTimes()"></div><div class="field"><label class="fl">What you ate</label><input type="text" id="m2f" placeholder="e.g. Greek yoghurt, nuts"></div></div>
-        <div class="meal-row"><div class="field"><label class="fl">Time</label><input type="time" id="m3t" oninput="validateMealTimes()"></div><div class="field"><label class="fl">What you ate</label><input type="text" id="m3f" placeholder="e.g. Grilled fish, veg"></div></div>
-        <div class="meal-row"><div class="field"><label class="fl">Time</label><input type="time" id="m4t" oninput="validateMealTimes()"></div><div class="field"><label class="fl">What you ate</label><input type="text" id="m4f" placeholder="e.g. Protein shake"></div></div>
+        <div class="meal-row"><div class="field"><label class="fl">Time</label><input type="time" id="m1t" oninput="validateMealTimes()"></div><div class="field"><label class="fl">What you ate</label><input type="text" id="m1f" placeholder="e.g. Jollof rice, chicken" onblur="autoEstimateSodium()"></div></div>
+        <div class="meal-row"><div class="field"><label class="fl">Time</label><input type="time" id="m2t" oninput="validateMealTimes()"></div><div class="field"><label class="fl">What you ate</label><input type="text" id="m2f" placeholder="e.g. Greek yoghurt, nuts" onblur="autoEstimateSodium()"></div></div>
+        <div class="meal-row"><div class="field"><label class="fl">Time</label><input type="time" id="m3t" oninput="validateMealTimes()"></div><div class="field"><label class="fl">What you ate</label><input type="text" id="m3f" placeholder="e.g. Grilled fish, veg" onblur="autoEstimateSodium()"></div></div>
+        <div class="meal-row"><div class="field"><label class="fl">Time</label><input type="time" id="m4t" oninput="validateMealTimes()"></div><div class="field"><label class="fl">What you ate</label><input type="text" id="m4f" placeholder="e.g. Protein shake" onblur="autoEstimateSodium()"></div></div>
         <div class="val-msg" id="val-meals-msg" style="margin-bottom:8px"><i class="fas fa-triangle-exclamation"></i><span></span></div>
         <hr class="div">
         <div class="g3">
@@ -682,6 +682,10 @@ function validateAll(){
   const errors=[];
   const warnings=[];
   if(!validateDate())errors.push('Date: '+( document.getElementById('val-date-msg')?.querySelector('span')?.textContent||'Invalid date' ));
+  // Check sodium estimated if meals logged
+  const hasMeal=[1,2,3,4].some(i=>document.getElementById('m'+i+'f')?.value?.trim());
+  const hasSodium=document.getElementById('sodium')?.value;
+  if(hasMeal&&!hasSodium)errors.push('Sodium: Please estimate sodium from your meals before saving.');
   validateBPTime();
   if(!validateIF()){
     const msg=document.getElementById('val-if-msg')?.querySelector('span')?.textContent;
@@ -793,7 +797,17 @@ function updateIF(){
 }
 
 // SAVE
-async function estimateSodium(){
+let _sodiumDebounce = null;
+function autoEstimateSodium(){
+  // Only auto-run if at least one meal has food logged and no estimate yet
+  const hasMeal = [1,2,3,4].some(i => document.getElementById('m'+i+'f')?.value?.trim());
+  if(!hasMeal) return;
+  // Debounce — wait 1.5s after last blur before firing
+  clearTimeout(_sodiumDebounce);
+  _sodiumDebounce = setTimeout(()=>{ estimateSodium(true); }, 1500);
+}
+
+async function estimateSodium(silent=false){
   const meals=[];
   for(let i=1;i<=4;i++){
     const t=v('m'+i+'t'), f=v('m'+i+'f');
@@ -864,7 +878,7 @@ async function estimateSodium(){
         <div class="sodium-note">Estimates only — actual values vary by recipe and portion size. Daily limit: 2,300 mg.</div>
       </div>`;
     resultDiv.style.display='block';
-    showToast('Sodium estimated ✓');
+    if(!silent)showToast('Sodium estimated ✓');
   }catch(err){
     showToast('Failed: '+err.message.slice(0,60));
     console.error('Sodium estimation error:',err);
@@ -897,6 +911,7 @@ async function saveEntry(){
     row_index:window._editingRowIndex||''
   };
   try{
+    console.log('Saving payload row_index:', payload.row_index, 'rawIndex on entry:', window._editingRowIndex);
     await fetch(SHEET_SCRIPT,{method:'POST',body:JSON.stringify(payload)});
     if(window._editingRowIndex){
       window._editingRowIndex=null;
@@ -1403,11 +1418,14 @@ function renderDailyReport(r){
     ['Sodium',(()=>{
       const s=parseFloat(r[24]);
       if(!s||isNaN(s))return'—';
-      let cls='',label='';
-      if(s<=2300){cls='color:var(--green)';label='✓ Within target';}
-      else if(s<=3000){cls='color:var(--amber)';label='↑ Above target';}
-      else{cls='color:var(--red)';label='⚠ High';}
-      return s.toLocaleString()+' mg <span style="'+cls+';font-size:11px">('+label+')</span>';
+      const TARGET=2300;
+      const diff=s-TARGET;
+      let col='';
+      let txt='';
+      if(diff<=0){col='var(--green)';txt=s.toLocaleString()+' mg — '+Math.abs(diff).toLocaleString()+' mg under your 2,300 mg daily target';}
+      else if(diff<=700){col='var(--amber)';txt=s.toLocaleString()+' mg — '+diff.toLocaleString()+' mg above your 2,300 mg daily target';}
+      else{col='var(--red)';txt=s.toLocaleString()+' mg — '+diff.toLocaleString()+' mg above your 2,300 mg daily target. Watch BP.';}
+      return '<span style="color:'+col+'">'+txt+'</span>';
     })()],
     ['Alcohol',r[25]?r[25]+' units':'—'],
     ['Caffeine',r[26]?r[26]+' cups':'—'],
