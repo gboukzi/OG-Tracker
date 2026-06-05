@@ -1443,9 +1443,13 @@ function renderDailyReport(r){
   const canEdit = hoursAgo <= 24;
   const rowIndex = r._rawIndex !== undefined ? r._rawIndex : allEntries.indexOf(r);
 
+  // Store in globals for the edit button to reference
+  window._currentEditEntry = r;
+  window._currentEditRowIndex = rowIndex;
+
   document.getElementById('daily-report-content').innerHTML=`
     <div class="daily-report">
-      ${canEdit?`<div style="margin-bottom:10px;text-align:right"><button onclick="loadEntryForEdit(window._recentEntries[${document.querySelectorAll('.day-btn.active')[0]?.dataset?.idx||0}], ${rowIndex})" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:var(--blue-dim);border:1px solid rgba(90,180,255,0.3);border-radius:8px;color:#5ab4ff;font-size:12px;font-family:'DM Mono',monospace;cursor:pointer"><i class="fas fa-pen"></i> Edit entry</button></div>`:''}
+      ${canEdit?`<div style="margin-bottom:10px;text-align:right"><button onclick="loadEntryForEdit(window._currentEditEntry, window._currentEditRowIndex)" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:var(--blue-dim);border:1px solid rgba(90,180,255,0.3);border-radius:8px;color:#5ab4ff;font-size:12px;font-family:'DM Mono',monospace;cursor:pointer"><i class="fas fa-pen"></i> Edit entry</button></div>`:''}
       ${rows.map(([k,val])=>`<div class="report-row"><span class="report-key">${k}</span><span class="report-val">${val}</span></div>`).join('')}
     </div>`;
 }
