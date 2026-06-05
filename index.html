@@ -1074,7 +1074,10 @@ async function loadDashboard(){
     const raw=await res.json();
     // raw is array of rows; each row: [date,time,l_sys,l_dia,r_sys,r_dia,weight,waist,bmi,rhr,sleep_q,sleep_sessions,if_start,if_open,if_close,m1t,m1f,m2t,m2f,m3t,m3f,m4t,m4f,water,sodium,alcohol,caffeine,wtype,wdur,mood,energy,stress,focus,habits,notes]
     if(!raw||!raw.length){loading.style.display='none';empty.style.display='block';return;}
-    allEntries=raw.filter(r=>r[0]&&r[0]!=='').reverse(); // oldest first for charts
+    const rawFiltered=raw.filter(r=>r[0]&&r[0]!=='');
+    // Tag each entry with its raw index (position in sheet after header)
+    rawFiltered.forEach((r,i)=>{ r._rawIndex=i; });
+    allEntries=[...rawFiltered].reverse(); // oldest first for charts
     renderDashboard();
     loading.style.display='none';content.style.display='block';
   }catch(e){
@@ -1411,7 +1414,7 @@ function renderDailyReport(r){
   const savedAt = r[35] ? new Date(r[35]) : new Date(cleanDate(r[0])+'T23:59:59');
   const hoursAgo = (new Date() - savedAt) / 3600000;
   const canEdit = hoursAgo <= 24;
-  const rowIndex = allEntries.indexOf(r);
+  const rowIndex = r._rawIndex !== undefined ? r._rawIndex : allEntries.indexOf(r);
 
   document.getElementById('daily-report-content').innerHTML=`
     <div class="daily-report">
