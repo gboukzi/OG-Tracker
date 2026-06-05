@@ -815,8 +815,15 @@ async function estimateSodium(){
     const res=await fetch(url);
     const rawText=await res.text();
     let parsed;
-    try{ parsed=JSON.parse(rawText); }
-    catch(e){ throw new Error('Bad response: '+rawText.slice(0,300)); }
+    try{
+      // Strip markdown fences if present
+      const clean=rawText.replace(/```json|```/g,'').trim();
+      parsed=JSON.parse(clean);
+      // If Claude returned a content array (raw API response), extract text
+      if(parsed.content&&parsed.content[0]&&parsed.content[0].text){
+        parsed=JSON.parse(parsed.content[0].text.replace(/```json|```/g,'').trim());
+      }
+    }catch(e){ throw new Error('Parse error: '+rawText.slice(0,200)); }
 
     // Store sodium value for save
     document.getElementById('sodium').value=parsed.total_mg||'';
