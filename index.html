@@ -812,12 +812,16 @@ async function estimateSodium(){
   try{
     const res=await fetch(SHEET_SCRIPT,{
       method:'POST',
+      headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
         action:'estimate_sodium',
         meals:meals
       })
     });
-    const parsed=await res.json();
+    const rawText=await res.text();
+    let parsed;
+    try{ parsed=JSON.parse(rawText); }
+    catch(e){ throw new Error('Bad response: '+rawText.slice(0,300)); }
 
     // Store sodium value for save
     document.getElementById('sodium').value=parsed.total_mg||'';
@@ -848,8 +852,8 @@ async function estimateSodium(){
     resultDiv.style.display='block';
     showToast('Sodium estimated ✓');
   }catch(err){
-    showToast('Estimation failed — check connection');
-    console.error(err);
+    showToast('Failed: '+err.message.slice(0,60));
+    console.error('Sodium estimation error:',err);
   }
   btn.disabled=false;
   btn.innerHTML='<i class="fas fa-flask"></i> Re-estimate sodium';
