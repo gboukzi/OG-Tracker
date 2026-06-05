@@ -3,640 +3,640 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OG — Daily Health Tracker</title>
+<title>OG — Health Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
-  :root {
-    --bg: #0e0e0e;
-    --surface: #161616;
-    --surface2: #1e1e1e;
-    --border: rgba(255,255,255,0.08);
-    --border2: rgba(255,255,255,0.14);
-    --text: #f0ede6;
-    --text2: #8a8680;
-    --text3: #555250;
-    --accent: #c8f05a;
-    --accent-dim: rgba(200,240,90,0.12);
-    --accent-text: #3a4a10;
-    --red: #ff5a5a;
-    --red-dim: rgba(255,90,90,0.1);
-    --amber: #f0a832;
-    --amber-dim: rgba(240,168,50,0.1);
-    --blue: #5ab4ff;
-    --blue-dim: rgba(90,180,255,0.1);
-    --green: #4ade80;
-    --green-dim: rgba(74,222,128,0.1);
-    --radius: 10px;
-    --radius-lg: 16px;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  html { font-size: 16px; }
-  body { background: var(--bg); color: var(--text); font-family: 'Instrument Sans', sans-serif; min-height: 100vh; line-height: 1.6; }
-  header { padding: 2rem 1.5rem 1.5rem; border-bottom: 1px solid var(--border); display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; max-width: 780px; margin: 0 auto; }
-  .header-left h1 { font-family: 'DM Serif Display', serif; font-size: clamp(1.6rem, 5vw, 2.2rem); font-weight: 400; color: var(--text); line-height: 1.1; letter-spacing: -0.02em; }
-  .header-left h1 span { color: var(--accent); font-style: italic; }
-  .header-left p { font-size: 13px; color: var(--text2); margin-top: 4px; font-family: 'DM Mono', monospace; }
-  .header-date { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text3); text-align: right; line-height: 1.6; }
-  .banner { max-width: 780px; margin: 1.25rem auto 0; padding: 0 1.5rem; }
-  .banner-inner { background: var(--amber-dim); border: 1px solid rgba(240,168,50,0.25); border-radius: var(--radius); padding: 10px 14px; display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--amber); font-family: 'DM Mono', monospace; }
-  .banner-inner i { font-size: 14px; flex-shrink: 0; }
-  main { max-width: 780px; margin: 0 auto; padding: 1.5rem 1.5rem 4rem; display: flex; flex-direction: column; gap: 1rem; }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
-  .card-header { padding: 14px 18px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
-  .card-header i { font-size: 14px; color: var(--accent); width: 18px; text-align: center; }
-  .card-header span { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text2); font-family: 'DM Mono', monospace; }
-  .card-body { padding: 16px 18px; }
-  .date-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  label.field-label { display: block; font-size: 11px; color: var(--text3); font-family: 'DM Mono', monospace; margin-bottom: 5px; letter-spacing: 0.04em; }
-  input[type=text], input[type=number], input[type=date], input[type=time], select, textarea {
-    width: 100%; background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--radius);
-    color: var(--text); font-family: 'DM Mono', monospace; font-size: 14px; padding: 9px 12px;
-    outline: none; transition: border-color 0.15s; -webkit-appearance: none; appearance: none;
-  }
-  input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(200,240,90,0.1); }
-  select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23555' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 30px; cursor: pointer; }
-  select option { background: #1e1e1e; }
-  textarea { resize: vertical; min-height: 80px; line-height: 1.5; }
-  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
-  .grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; }
-  .field { display: flex; flex-direction: column; }
-  .bp-arms { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .arm-block { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
-  .arm-title { background: rgba(255,255,255,0.03); padding: 8px 12px; font-size: 11px; font-family: 'DM Mono', monospace; color: var(--text2); letter-spacing: 0.06em; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid var(--border); }
-  .arm-body { padding: 10px 12px; }
-  .bp-col-headers { display: grid; grid-template-columns: 28px 1fr 1fr 1fr; gap: 5px; margin-bottom: 5px; }
-  .bp-col-headers span { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--text3); text-align: center; }
-  .bp-reading { display: grid; grid-template-columns: 28px 1fr 1fr 1fr; gap: 5px; margin-bottom: 5px; align-items: center; }
-  .bp-reading .rnum { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--text3); text-align: center; }
-  .bp-reading input { padding: 7px 6px; font-size: 13px; text-align: center; border-radius: 7px; }
-  .bp-avg { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); font-size: 12px; font-family: 'DM Mono', monospace; color: var(--text2); }
-  .bp-avg strong { color: var(--text); }
-  .bp-avg .flag-high { color: var(--red); }
-  .bp-arm-diff { margin-top: 8px; font-size: 12px; font-family: 'DM Mono', monospace; color: var(--red); display: none; }
-
-  /* IF TRACKER */
-  .if-bar-wrap { margin: 14px 0 10px; }
-  .if-bar-bg { background: var(--surface2); border-radius: 30px; height: 10px; overflow: hidden; border: 1px solid var(--border); }
-  .if-bar-fill { height: 100%; border-radius: 30px; background: var(--accent); transition: width 0.4s; }
-  .if-bar-fill.eating { background: var(--amber); }
-  .if-stats { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 10px; }
-  .if-stat { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text2); }
-  .if-stat strong { color: var(--text); }
-  .if-status { display: inline-flex; align-items: center; gap: 6px; font-family: 'DM Mono', monospace; font-size: 12px; padding: 4px 12px; border-radius: 20px; margin-bottom: 12px; }
-  .if-status.fasting { background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(200,240,90,0.25); }
-  .if-status.eating { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(240,168,50,0.25); }
-  .if-status.done { background: var(--green-dim); color: var(--green); border: 1px solid rgba(74,222,128,0.25); }
-  .if-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-
-  /* MEAL ROWS */
-  .meal-rows { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
-  .meal-row { display: grid; grid-template-columns: 110px 1fr; gap: 8px; align-items: center; }
-  .meal-row input { font-size: 13px; }
-  .meal-time-label { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--text3); }
-
-  /* NUTRITION DIVIDER */
-  .nutrition-divider { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
-
-  .habits-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); gap: 7px; }
-  .habit-item { display: flex; align-items: center; gap: 9px; padding: 10px 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; transition: all 0.12s; user-select: none; }
-  .habit-item:hover { border-color: var(--border2); }
-  .habit-item.done { background: var(--accent-dim); border-color: rgba(200,240,90,0.3); }
-  .habit-item input[type=checkbox] { display: none; }
-  .habit-check { width: 16px; height: 16px; border: 1px solid var(--border2); border-radius: 4px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 10px; transition: all 0.12s; }
-  .habit-item.done .habit-check { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
-  .habit-label { font-size: 13px; color: var(--text2); transition: color 0.12s; }
-  .habit-item.done .habit-label { color: var(--text); }
-  .mood-row { display: flex; gap: 7px; flex-wrap: wrap; }
-  .mood-btn { padding: 7px 14px; background: var(--surface2); border: 1px solid var(--border); border-radius: 30px; font-size: 13px; color: var(--text2); cursor: pointer; font-family: 'Instrument Sans', sans-serif; transition: all 0.12s; }
-  .mood-btn:hover { border-color: var(--border2); }
-  .mood-btn.active { background: var(--accent-dim); border-color: rgba(200,240,90,0.4); color: var(--accent); }
-  .actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 0.5rem; }
-  .btn-clear { padding: 10px 20px; background: transparent; border: 1px solid var(--border2); border-radius: var(--radius); color: var(--text2); font-size: 14px; cursor: pointer; font-family: 'Instrument Sans', sans-serif; display: flex; align-items: center; gap: 7px; transition: all 0.12s; }
-  .btn-clear:hover { color: var(--text); }
-  .btn-save { padding: 10px 24px; background: var(--accent); border: none; border-radius: var(--radius); color: var(--accent-text); font-size: 14px; font-weight: 600; cursor: pointer; font-family: 'Instrument Sans', sans-serif; display: flex; align-items: center; gap: 7px; transition: all 0.12s; }
-  .btn-save:hover { opacity: 0.9; transform: translateY(-1px); }
-  .btn-save:active { transform: scale(0.98); }
-  .log-empty { text-align: center; padding: 2.5rem 1rem; color: var(--text3); font-size: 14px; font-family: 'DM Mono', monospace; }
-  .log-entry { border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 8px; }
-  .log-entry:hover { border-color: var(--border2); }
-  .log-entry-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-  .log-entry-date { font-family: 'DM Mono', monospace; font-size: 13px; color: var(--text); font-weight: 500; }
-  .mood-tag { font-family: 'DM Mono', monospace; font-size: 11px; padding: 3px 10px; border-radius: 20px; background: var(--surface2); color: var(--text2); text-transform: uppercase; letter-spacing: 0.05em; }
-  .bp-pills { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 8px; }
-  .bp-pill { font-family: 'DM Mono', monospace; font-size: 12px; padding: 3px 10px; border-radius: 20px; background: var(--surface2); border: 1px solid var(--border); color: var(--text2); }
-  .bp-pill.high { background: var(--red-dim); border-color: rgba(255,90,90,0.3); color: var(--red); }
-  .log-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 13px; color: var(--text2); }
-  .log-notes { margin-top: 8px; font-size: 13px; color: var(--text3); font-style: italic; border-top: 1px solid var(--border); padding-top: 8px; }
-  .btn-export { display: inline-flex; align-items: center; gap: 7px; padding: 8px 16px; background: transparent; border: 1px solid var(--border2); border-radius: var(--radius); color: var(--text2); font-size: 13px; font-family: 'DM Mono', monospace; cursor: pointer; transition: all 0.12s; }
-  .btn-export:hover { color: var(--text); border-color: rgba(255,255,255,0.25); }
-  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--accent); color: var(--accent-text); padding: 10px 20px; border-radius: 30px; font-size: 13px; font-weight: 600; font-family: 'DM Mono', monospace; z-index: 1000; transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1); pointer-events: none; }
-  .toast.show { transform: translateX(-50%) translateY(0); }
-  @media (max-width: 520px) {
-    header { flex-direction: column; align-items: flex-start; }
-    .header-date { text-align: left; }
-    .bp-arms { grid-template-columns: 1fr; }
-    .grid-4 { grid-template-columns: 1fr 1fr; }
-    .grid-3 { grid-template-columns: 1fr 1fr; }
-    .date-row { grid-template-columns: 1fr; }
-    .meal-row { grid-template-columns: 90px 1fr; }
-  }
+:root{--bg:#0e0e0e;--surface:#161616;--surface2:#1e1e1e;--border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.14);--text:#f0ede6;--text2:#8a8680;--text3:#555250;--accent:#c8f05a;--accent-dim:rgba(200,240,90,0.12);--accent-text:#3a4a10;--red:#ff5a5a;--red-dim:rgba(255,90,90,0.1);--amber:#f0a832;--amber-dim:rgba(240,168,50,0.1);--blue:#5ab4ff;--blue-dim:rgba(90,180,255,0.1);--green:#4ade80;--green-dim:rgba(74,222,128,0.1);--radius:10px;--radius-lg:16px;}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{font-size:16px;}
+body{background:var(--bg);color:var(--text);font-family:'Instrument Sans',sans-serif;min-height:100vh;line-height:1.6;}
+/* NAV */
+nav{max-width:860px;margin:0 auto;padding:1.25rem 1.5rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);}
+.nav-brand{font-family:'DM Serif Display',serif;font-size:1.3rem;color:var(--text);}
+.nav-brand span{color:var(--accent);font-style:italic;}
+.nav-tabs{display:flex;gap:4px;}
+.nav-tab{padding:7px 16px;border-radius:30px;font-size:13px;cursor:pointer;border:1px solid transparent;color:var(--text2);background:transparent;font-family:'Instrument Sans',sans-serif;transition:all 0.15s;}
+.nav-tab:hover{color:var(--text);}
+.nav-tab.active{background:var(--surface);border-color:var(--border2);color:var(--text);}
+/* PAGES */
+.page{display:none;max-width:860px;margin:0 auto;padding:1.5rem 1.5rem 4rem;}
+.page.active{display:block;}
+/* CARDS */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:1rem;}
+.card-header{padding:14px 18px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.card-header i{font-size:14px;color:var(--accent);width:18px;text-align:center;}
+.card-header .ch-title{font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text2);font-family:'DM Mono',monospace;}
+.card-body{padding:16px 18px;}
+/* FORMS */
+label.fl{display:block;font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:5px;letter-spacing:0.04em;}
+input[type=text],input[type=number],input[type=date],input[type=time],input[type=password],select,textarea{width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);font-family:'DM Mono',monospace;font-size:14px;padding:9px 12px;outline:none;transition:border-color 0.15s;-webkit-appearance:none;appearance:none;}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(200,240,90,0.1);}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23555' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:30px;cursor:pointer;}
+select option{background:#1e1e1e;}
+textarea{resize:vertical;min-height:80px;line-height:1.5;}
+.field{display:flex;flex-direction:column;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+.g4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;}
+/* BP */
+.bp-arms{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.arm-block{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.arm-title{background:rgba(255,255,255,0.03);padding:8px 12px;font-size:11px;font-family:'DM Mono',monospace;color:var(--text2);letter-spacing:0.06em;display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--border);}
+.arm-body{padding:10px 12px;}
+.bp-ch{display:grid;grid-template-columns:28px 1fr 1fr 1fr;gap:5px;margin-bottom:5px;}
+.bp-ch span{font-size:10px;font-family:'DM Mono',monospace;color:var(--text3);text-align:center;}
+.bp-r{display:grid;grid-template-columns:28px 1fr 1fr 1fr;gap:5px;margin-bottom:5px;align-items:center;}
+.bp-r .rn{font-size:11px;font-family:'DM Mono',monospace;color:var(--text3);text-align:center;}
+.bp-r input{padding:7px 6px;font-size:13px;text-align:center;border-radius:7px;}
+.bp-avg{margin-top:10px;padding-top:8px;border-top:1px solid var(--border);font-size:12px;font-family:'DM Mono',monospace;color:var(--text2);}
+.bp-avg strong{color:var(--text);}
+.flag-high{color:var(--red)!important;}
+.arm-diff{margin-top:8px;font-size:12px;font-family:'DM Mono',monospace;color:var(--red);display:none;}
+/* IF */
+.if-bar-bg{background:var(--surface2);border-radius:30px;height:10px;overflow:hidden;border:1px solid var(--border);margin:12px 0 8px;}
+.if-bar-fill{height:100%;border-radius:30px;background:var(--accent);transition:width 0.4s;}
+.if-bar-fill.eating{background:var(--amber);}
+.if-stats{display:flex;gap:16px;flex-wrap:wrap;font-family:'DM Mono',monospace;font-size:12px;color:var(--text2);}
+.if-stats strong{color:var(--text);}
+.if-badge{display:inline-flex;align-items:center;gap:6px;font-family:'DM Mono',monospace;font-size:12px;padding:4px 12px;border-radius:20px;margin-bottom:10px;}
+.if-badge.fasting{background:var(--accent-dim);color:var(--accent);border:1px solid rgba(200,240,90,0.25);}
+.if-badge.eating{background:var(--amber-dim);color:var(--amber);border:1px solid rgba(240,168,50,0.25);}
+.if-badge.done{background:var(--green-dim);color:var(--green);border:1px solid rgba(74,222,128,0.25);}
+.if-dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+/* MEALS */
+.meal-row{display:grid;grid-template-columns:110px 1fr;gap:8px;margin-bottom:8px;}
+hr.div{border:none;border-top:1px solid var(--border);margin:14px 0;}
+/* HABITS */
+.habits-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:7px;}
+.habit-item{display:flex;align-items:center;gap:9px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:all 0.12s;user-select:none;}
+.habit-item.done{background:var(--accent-dim);border-color:rgba(200,240,90,0.3);}
+.habit-item input[type=checkbox]{display:none;}
+.hck{width:16px;height:16px;border:1px solid var(--border2);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;}
+.habit-item.done .hck{background:var(--accent);border-color:var(--accent);color:var(--accent-text);}
+.habit-label{font-size:13px;color:var(--text2);}
+.habit-item.done .habit-label{color:var(--text);}
+/* MOOD */
+.mood-row{display:flex;gap:7px;flex-wrap:wrap;}
+.mood-btn{padding:7px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:30px;font-size:13px;color:var(--text2);cursor:pointer;font-family:'Instrument Sans',sans-serif;transition:all 0.12s;}
+.mood-btn.active{background:var(--accent-dim);border-color:rgba(200,240,90,0.4);color:var(--accent);}
+/* BUTTONS */
+.actions{display:flex;gap:10px;justify-content:flex-end;margin-top:0.5rem;}
+.btn-sec{padding:10px 20px;background:transparent;border:1px solid var(--border2);border-radius:var(--radius);color:var(--text2);font-size:14px;cursor:pointer;font-family:'Instrument Sans',sans-serif;display:flex;align-items:center;gap:7px;transition:all 0.12s;}
+.btn-sec:hover{color:var(--text);}
+.btn-pri{padding:10px 24px;background:var(--accent);border:none;border-radius:var(--radius);color:var(--accent-text);font-size:14px;font-weight:600;cursor:pointer;font-family:'Instrument Sans',sans-serif;display:flex;align-items:center;gap:7px;transition:all 0.12s;}
+.btn-pri:hover{opacity:0.9;}
+.btn-pri:disabled{opacity:0.5;cursor:not-allowed;}
+/* LOCK SCREEN */
+.lock-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:1rem;}
+.lock-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:2rem;width:100%;max-width:340px;text-align:center;}
+.lock-card h2{font-family:'DM Serif Display',serif;font-size:1.4rem;font-weight:400;margin-bottom:6px;}
+.lock-card p{font-size:13px;color:var(--text2);margin-bottom:1.5rem;}
+.lock-error{color:var(--red);font-size:13px;font-family:'DM Mono',monospace;margin-top:8px;display:none;}
+/* DASHBOARD */
+.dash-hero{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.75rem;margin-bottom:1rem;}
+.dash-hero h2{font-family:'DM Serif Display',serif;font-size:1.8rem;font-weight:400;margin-bottom:4px;}
+.dash-hero h2 span{color:var(--accent);font-style:italic;}
+.dash-hero p{font-size:13px;color:var(--text2);font-family:'DM Mono',monospace;}
+.stats-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:1rem;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 18px;}
+.stat-label{font-size:11px;font-family:'DM Mono',monospace;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;}
+.stat-val{font-size:1.5rem;font-family:'DM Mono',monospace;font-weight:500;color:var(--text);}
+.stat-val.red{color:var(--red);}
+.stat-val.green{color:var(--green);}
+.stat-sub{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;margin-top:2px;}
+.chart-wrap{position:relative;height:220px;}
+.section-title{font-family:'DM Serif Display',serif;font-size:1.1rem;font-weight:400;margin-bottom:12px;color:var(--text);}
+.day-selector{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1rem;}
+.day-btn{padding:6px 14px;border-radius:20px;font-size:12px;font-family:'DM Mono',monospace;cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--text2);transition:all 0.12s;}
+.day-btn.active{background:var(--accent-dim);border-color:rgba(200,240,90,0.4);color:var(--accent);}
+.daily-report{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.25rem 1.5rem;}
+.report-row{display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border);}
+.report-row:last-child{border-bottom:none;}
+.report-key{font-size:12px;font-family:'DM Mono',monospace;color:var(--text3);min-width:120px;}
+.report-val{font-size:13px;color:var(--text);text-align:right;font-family:'DM Mono',monospace;}
+.report-val.red{color:var(--red);}
+.bp-badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:12px;font-family:'DM Mono',monospace;background:var(--surface2);border:1px solid var(--border);margin-left:4px;}
+.bp-badge.high{background:var(--red-dim);border-color:rgba(255,90,90,0.3);color:var(--red);}
+.meals-list{text-align:right;}
+.meals-list div{font-size:12px;color:var(--text2);font-family:'DM Mono',monospace;}
+.habits-pills{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;}
+.habit-pill{font-size:11px;padding:2px 9px;border-radius:20px;background:var(--accent-dim);color:var(--accent);border:1px solid rgba(200,240,90,0.2);}
+.empty-state{text-align:center;padding:3rem 1rem;color:var(--text3);font-family:'DM Mono',monospace;font-size:14px;}
+.loading{text-align:center;padding:2rem;color:var(--text3);font-family:'DM Mono',monospace;font-size:13px;}
+/* TOAST */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--accent);color:var(--accent-text);padding:10px 20px;border-radius:30px;font-size:13px;font-weight:600;font-family:'DM Mono',monospace;z-index:1000;transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);pointer-events:none;}
+.toast.show{transform:translateX(-50%) translateY(0);}
+/* BANNER */
+.banner{background:var(--amber-dim);border:1px solid rgba(240,168,50,0.25);border-radius:var(--radius);padding:10px 14px;display:flex;align-items:center;gap:10px;font-size:13px;color:var(--amber);font-family:'DM Mono',monospace;margin-bottom:1rem;}
+@media(max-width:520px){
+  nav{flex-direction:column;align-items:flex-start;gap:10px;}
+  .bp-arms{grid-template-columns:1fr;}
+  .g4{grid-template-columns:1fr 1fr;}
+  .g3{grid-template-columns:1fr 1fr;}
+  .g2{grid-template-columns:1fr;}
+  .meal-row{grid-template-columns:90px 1fr;}
+  .stats-row{grid-template-columns:1fr 1fr;}
+}
 </style>
 </head>
 <body>
 
-<header>
-  <div class="header-left">
-    <h1>OG — <span>Daily</span> tracker</h1>
-    <p>Health · Fitness · BP monitoring</p>
+<nav>
+  <div class="nav-brand">OG — <span>Health</span> Tracker</div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('dashboard')"><i class="fas fa-chart-line" style="margin-right:5px"></i>Dashboard</button>
+    <button class="nav-tab" onclick="showPage('edit')" id="edit-tab"><i class="fas fa-pen" style="margin-right:5px"></i>Log Entry</button>
   </div>
-  <div class="header-date" id="header-date"></div>
-</header>
+</nav>
 
-<div class="banner">
-  <div class="banner-inner">
-    <i class="fas fa-triangle-exclamation"></i>
-    <span>Esidrex pause week — log 3 BP readings per arm every morning.</span>
+<!-- DASHBOARD PAGE -->
+<div class="page active" id="page-dashboard">
+  <div style="padding-top:1.5rem">
+    <div class="dash-hero">
+      <h2>OG's <span>Progress</span></h2>
+      <p id="dash-subtitle">Loading latest data…</p>
+    </div>
+
+    <div id="dash-loading" class="loading"><i class="fas fa-circle-notch fa-spin"></i> Fetching data…</div>
+    <div id="dash-content" style="display:none">
+
+      <!-- STAT CARDS -->
+      <div class="stats-row" id="stats-row"></div>
+
+      <!-- BP CHART -->
+      <div class="card">
+        <div class="card-header"><i class="fas fa-heart-pulse"></i><span class="ch-title">Blood pressure trend</span></div>
+        <div class="card-body"><div class="chart-wrap"><canvas id="bp-chart"></canvas></div></div>
+      </div>
+
+      <!-- WEIGHT CHART -->
+      <div class="card">
+        <div class="card-header"><i class="fas fa-weight-scale"></i><span class="ch-title">Weight trend</span></div>
+        <div class="card-body"><div class="chart-wrap"><canvas id="weight-chart"></canvas></div></div>
+      </div>
+
+      <!-- DAILY REPORT -->
+      <div class="card">
+        <div class="card-header"><i class="fas fa-calendar-day"></i><span class="ch-title">Daily report</span></div>
+        <div class="card-body">
+          <div class="day-selector" id="day-selector"></div>
+          <div id="daily-report-content"></div>
+        </div>
+      </div>
+
+    </div>
+    <div id="dash-empty" style="display:none" class="empty-state">No entries yet. Check back soon.</div>
   </div>
 </div>
 
-<main>
+<!-- EDIT PAGE -->
+<div class="page" id="page-edit">
 
-  <!-- DATE -->
-  <div class="card">
-    <div class="card-header"><i class="fas fa-calendar-day"></i><span>Entry date</span></div>
-    <div class="card-body">
-      <div class="date-row">
-        <div class="field"><label class="field-label">Date</label><input type="date" id="entry-date"></div>
-        <div class="field"><label class="field-label">Time</label><input type="time" id="entry-time"></div>
-      </div>
+  <!-- LOCK SCREEN -->
+  <div class="lock-screen" id="lock-screen">
+    <div class="lock-card">
+      <h2>Log Entry</h2>
+      <p>Enter your password to access the tracker.</p>
+      <div class="field"><label class="fl">Password</label><input type="password" id="pw-input" placeholder="••••••••" onkeydown="if(event.key==='Enter')checkPw()"></div>
+      <div style="margin-top:12px"><button class="btn-pri" style="width:100%;justify-content:center" onclick="checkPw()">Unlock</button></div>
+      <div class="lock-error" id="lock-error">Incorrect password.</div>
     </div>
   </div>
 
-  <!-- BLOOD PRESSURE -->
-  <div class="card">
-    <div class="card-header"><i class="fas fa-heart-pulse"></i><span>Blood pressure — morning readings</span></div>
-    <div class="card-body">
-      <div class="bp-arms">
-        <div class="arm-block">
-          <div class="arm-title"><i class="fas fa-arrow-left" style="font-size:10px"></i> Left arm</div>
-          <div class="arm-body">
-            <div class="bp-col-headers"><span></span><span>SYS</span><span>DIA</span><span>HR</span></div>
-            <div class="bp-reading"><span class="rnum">R1</span><input type="number" id="l1s" placeholder="120"><input type="number" id="l1d" placeholder="80"><input type="number" id="l1p" placeholder="72"></div>
-            <div class="bp-reading"><span class="rnum">R2</span><input type="number" id="l2s" placeholder="120"><input type="number" id="l2d" placeholder="80"><input type="number" id="l2p" placeholder="72"></div>
-            <div class="bp-reading"><span class="rnum">R3</span><input type="number" id="l3s" placeholder="120"><input type="number" id="l3d" placeholder="80"><input type="number" id="l3p" placeholder="72"></div>
-            <div class="bp-avg" id="l-avg"></div>
+  <!-- EDITOR (hidden until unlocked) -->
+  <div id="editor-content" style="display:none;padding-top:1.5rem">
+
+    <div class="banner"><i class="fas fa-triangle-exclamation"></i> Esidrex pause week — log 3 BP readings per arm every morning.</div>
+
+    <!-- DATE -->
+    <div class="card">
+      <div class="card-header"><i class="fas fa-calendar-day"></i><span class="ch-title">Entry date</span></div>
+      <div class="card-body">
+        <div class="g2">
+          <div class="field"><label class="fl">Date</label><input type="date" id="entry-date"></div>
+          <div class="field"><label class="fl">Time</label><input type="time" id="entry-time"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BP -->
+    <div class="card">
+      <div class="card-header"><i class="fas fa-heart-pulse"></i><span class="ch-title">Blood pressure — morning readings</span></div>
+      <div class="card-body">
+        <div class="bp-arms">
+          <div class="arm-block">
+            <div class="arm-title"><i class="fas fa-arrow-left" style="font-size:10px"></i> Left arm</div>
+            <div class="arm-body">
+              <div class="bp-ch"><span></span><span>SYS</span><span>DIA</span><span>HR</span></div>
+              <div class="bp-r"><span class="rn">R1</span><input type="number" id="l1s" placeholder="120"><input type="number" id="l1d" placeholder="80"><input type="number" id="l1p" placeholder="72"></div>
+              <div class="bp-r"><span class="rn">R2</span><input type="number" id="l2s" placeholder="120"><input type="number" id="l2d" placeholder="80"><input type="number" id="l2p" placeholder="72"></div>
+              <div class="bp-r"><span class="rn">R3</span><input type="number" id="l3s" placeholder="120"><input type="number" id="l3d" placeholder="80"><input type="number" id="l3p" placeholder="72"></div>
+              <div class="bp-avg" id="l-avg"></div>
+            </div>
+          </div>
+          <div class="arm-block">
+            <div class="arm-title">Right arm <i class="fas fa-arrow-right" style="font-size:10px"></i></div>
+            <div class="arm-body">
+              <div class="bp-ch"><span></span><span>SYS</span><span>DIA</span><span>HR</span></div>
+              <div class="bp-r"><span class="rn">R1</span><input type="number" id="r1s" placeholder="120"><input type="number" id="r1d" placeholder="80"><input type="number" id="r1p" placeholder="72"></div>
+              <div class="bp-r"><span class="rn">R2</span><input type="number" id="r2s" placeholder="120"><input type="number" id="r2d" placeholder="80"><input type="number" id="r2p" placeholder="72"></div>
+              <div class="bp-r"><span class="rn">R3</span><input type="number" id="r3s" placeholder="120"><input type="number" id="r3d" placeholder="80"><input type="number" id="r3p" placeholder="72"></div>
+              <div class="bp-avg" id="r-avg"></div>
+            </div>
           </div>
         </div>
-        <div class="arm-block">
-          <div class="arm-title">Right arm <i class="fas fa-arrow-right" style="font-size:10px"></i></div>
-          <div class="arm-body">
-            <div class="bp-col-headers"><span></span><span>SYS</span><span>DIA</span><span>HR</span></div>
-            <div class="bp-reading"><span class="rnum">R1</span><input type="number" id="r1s" placeholder="120"><input type="number" id="r1d" placeholder="80"><input type="number" id="r1p" placeholder="72"></div>
-            <div class="bp-reading"><span class="rnum">R2</span><input type="number" id="r2s" placeholder="120"><input type="number" id="r2d" placeholder="80"><input type="number" id="r2p" placeholder="72"></div>
-            <div class="bp-reading"><span class="rnum">R3</span><input type="number" id="r3s" placeholder="120"><input type="number" id="r3d" placeholder="80"><input type="number" id="r3p" placeholder="72"></div>
-            <div class="bp-avg" id="r-avg"></div>
+        <div class="arm-diff" id="arm-diff"><i class="fas fa-triangle-exclamation"></i> <span id="arm-diff-text"></span></div>
+      </div>
+    </div>
+
+    <!-- BODY METRICS -->
+    <div class="card">
+      <div class="card-header"><i class="fas fa-weight-scale"></i><span class="ch-title">Body metrics</span></div>
+      <div class="card-body">
+        <div class="g3">
+          <div class="field"><label class="fl">Weight (kg)</label><input type="number" id="weight" placeholder="85.2" step="0.1"></div>
+          <div class="field"><label class="fl">Waist (cm)</label><input type="number" id="waist" placeholder="92" step="0.5"></div>
+          <div class="field"><label class="fl">Chest (cm)</label><input type="number" id="chest" placeholder="100" step="0.5"></div>
+          <div class="field"><label class="fl">Hips (cm)</label><input type="number" id="hips" placeholder="98" step="0.5"></div>
+          <div class="field"><label class="fl">Body fat (%)</label><input type="number" id="bodyfat" placeholder="22" step="0.1"></div>
+          <div class="field"><label class="fl">Resting HR (bpm)</label><input type="number" id="rhr" placeholder="65"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLEEP -->
+    <div class="card">
+      <div class="card-header"><i class="fas fa-moon"></i><span class="ch-title">Sleep</span></div>
+      <div class="card-body">
+        <div class="g3">
+          <div class="field"><label class="fl">Bedtime</label><input type="time" id="bedtime"></div>
+          <div class="field"><label class="fl">Wake time</label><input type="time" id="waketime"></div>
+          <div class="field"><label class="fl">Quality (1–10)</label><input type="number" id="sleep-quality" min="1" max="10" placeholder="7"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- IF -->
+    <div class="card">
+      <div class="card-header"><i class="fas fa-hourglass-half"></i><span class="ch-title">Intermittent fasting — 16:8</span></div>
+      <div class="card-body">
+        <div id="if-badge-wrap"></div>
+        <div class="g3" style="margin-bottom:10px">
+          <div class="field"><label class="fl">Fast started</label><input type="time" id="if-start" oninput="updateIF()"></div>
+          <div class="field"><label class="fl">Eating window open</label><input type="time" id="if-open" oninput="updateIF()"></div>
+          <div class="field"><label class="fl">Eating window closed</label><input type="time" id="if-close" oninput="updateIF()"></div>
+        </div>
+        <div id="if-bar-wrap" style="display:none"><div class="if-bar-bg"><div class="if-bar-fill" id="if-bar" style="width:0%"></div></div></div>
+        <div class="if-stats" id="if-stats"></div>
+      </div>
+    </div>
+
+    <!-- NUTRITION -->
+    <div class="card">
+      <div class="card-header"><i class="fas fa-bowl-food"></i><span class="ch-title">Nutrition & meals</span></div>
+      <div class="card-body">
+        <label class="fl" style="margin-bottom:10px">Meals</label>
+        <div class="meal-row"><div class="field"><label class="fl">Time</label><input type="time" id="m1t"></div><div class="field"><label class="fl">What you ate</label><input type="text" id="m1f" placeholder="e.g. Jollof rice, chicken"></div></div>
+        <div class="meal-row"><div class="field"><label class="fl">Time</label><input type="time" id="m2t"></div><div class="field"><label class="fl">What you ate</label><input type="text" id="m2f" placeholder="e.g. Greek yoghurt, nuts"></div></div>
+        <div class="meal-row"><div class="field"><label class="fl">Time</label><input type="time" id="m3t"></div><div class="field"><label class="fl">What you ate</label><input type="text" id="m3f" placeholder="e.g. Grilled fish, veg"></div></div>
+        <div class="meal-row"><div class="field"><label class="fl">Time</label><input type="time" id="m4t"></div><div class="field"><label class="fl">What you ate</label><input type="text" id="m4f" placeholder="e.g. Protein shake"></div></div>
+        <hr class="div">
+        <div class="g4">
+          <div class="field"><label class="fl">Water (L)</label><input type="number" id="water" placeholder="2.5" step="0.1"></div>
+          <div class="field"><label class="fl">Sodium (mg)</label><input type="number" id="sodium" placeholder="1500"></div>
+          <div class="field"><label class="fl">Alcohol (units)</label><input type="number" id="alcohol" placeholder="0" step="0.5"></div>
+          <div class="field"><label class="fl">Caffeine (cups)</label><input type="number" id="caffeine" placeholder="0"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- WORKOUT -->
+    <div class="card">
+      <div class="card-header"><i class="fas fa-dumbbell"></i><span class="ch-title">Workout</span></div>
+      <div class="card-body">
+        <div class="g4">
+          <div class="field" style="grid-column:span 2"><label class="fl">Type</label>
+            <select id="workout-type"><option value="">— select —</option><option>Strength training</option><option>Cardio</option><option>HIIT</option><option>Yoga / stretching</option><option>Walk / run</option><option>Rest day</option></select>
+          </div>
+          <div class="field"><label class="fl">Duration (min)</label><input type="number" id="workout-dur" placeholder="45"></div>
+          <div class="field"><label class="fl">Intensity (1–10)</label><input type="number" id="workout-int" min="1" max="10" placeholder="7"></div>
+          <div class="field" style="grid-column:span 2"><label class="fl">Location</label>
+            <select id="workout-loc"><option value="">— select —</option><option>Ibadan gym</option><option>Lagos gym</option><option>Home</option><option>Outdoors</option></select>
           </div>
         </div>
       </div>
-      <div class="bp-arm-diff" id="arm-diff"><i class="fas fa-triangle-exclamation"></i> <span id="arm-diff-text"></span></div>
     </div>
-  </div>
 
-  <!-- BODY METRICS -->
-  <div class="card">
-    <div class="card-header"><i class="fas fa-weight-scale"></i><span>Body metrics</span></div>
-    <div class="card-body">
-      <div class="grid-3">
-        <div class="field"><label class="field-label">Weight (kg)</label><input type="number" id="weight" placeholder="85.2" step="0.1"></div>
-        <div class="field"><label class="field-label">Waist (cm)</label><input type="number" id="waist" placeholder="92" step="0.5"></div>
-        <div class="field"><label class="field-label">Chest (cm)</label><input type="number" id="chest" placeholder="100" step="0.5"></div>
-        <div class="field"><label class="field-label">Hips (cm)</label><input type="number" id="hips" placeholder="98" step="0.5"></div>
-        <div class="field"><label class="field-label">Body fat (%)</label><input type="number" id="bodyfat" placeholder="22" step="0.1"></div>
-        <div class="field"><label class="field-label">Resting HR (bpm)</label><input type="number" id="rhr" placeholder="65"></div>
-      </div>
+    <!-- HABITS -->
+    <div class="card">
+      <div class="card-header"><i class="fas fa-list-check"></i><span class="ch-title">Daily habits</span></div>
+      <div class="card-body"><div class="habits-grid" id="habits-grid"></div></div>
     </div>
-  </div>
 
-  <!-- SLEEP -->
-  <div class="card">
-    <div class="card-header"><i class="fas fa-moon"></i><span>Sleep</span></div>
-    <div class="card-body">
-      <div class="grid-3">
-        <div class="field"><label class="field-label">Bedtime</label><input type="time" id="bedtime"></div>
-        <div class="field"><label class="field-label">Wake time</label><input type="time" id="waketime"></div>
-        <div class="field"><label class="field-label">Quality (1–10)</label><input type="number" id="sleep-quality" min="1" max="10" placeholder="7"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- INTERMITTENT FASTING -->
-  <div class="card">
-    <div class="card-header"><i class="fas fa-hourglass-half"></i><span>Intermittent fasting — 16:8</span></div>
-    <div class="card-body">
-      <div id="if-status-badge" style="display:none"></div>
-      <div class="grid-3" style="margin-bottom:12px">
-        <div class="field"><label class="field-label">Fast started</label><input type="time" id="if-start" oninput="updateIF()"></div>
-        <div class="field"><label class="field-label">Eating window open</label><input type="time" id="if-open" oninput="updateIF()"></div>
-        <div class="field"><label class="field-label">Eating window closed</label><input type="time" id="if-close" oninput="updateIF()"></div>
-      </div>
-      <div class="if-bar-wrap" id="if-bar-wrap" style="display:none">
-        <div class="if-bar-bg"><div class="if-bar-fill" id="if-bar-fill" style="width:0%"></div></div>
-      </div>
-      <div class="if-stats" id="if-stats"></div>
-    </div>
-  </div>
-
-  <!-- NUTRITION -->
-  <div class="card">
-    <div class="card-header"><i class="fas fa-bowl-food"></i><span>Nutrition & meals</span></div>
-    <div class="card-body">
-      <label class="field-label" style="margin-bottom:10px">Meals</label>
-      <div class="meal-rows">
-        <div class="meal-row">
-          <div class="field"><label class="field-label">Time</label><input type="time" id="meal1-time"></div>
-          <div class="field"><label class="field-label">What you ate</label><input type="text" id="meal1-food" placeholder="e.g. Jollof rice, chicken, salad"></div>
+    <!-- MOOD -->
+    <div class="card">
+      <div class="card-header"><i class="fas fa-brain"></i><span class="ch-title">Mood & mental</span></div>
+      <div class="card-body">
+        <div style="margin-bottom:14px">
+          <label class="fl">Overall mood</label>
+          <div class="mood-row">
+            <button class="mood-btn" onclick="setMood(this,'great')">Great</button>
+            <button class="mood-btn" onclick="setMood(this,'good')">Good</button>
+            <button class="mood-btn" onclick="setMood(this,'neutral')">Neutral</button>
+            <button class="mood-btn" onclick="setMood(this,'low')">Low</button>
+            <button class="mood-btn" onclick="setMood(this,'stressed')">Stressed</button>
+          </div>
         </div>
-        <div class="meal-row">
-          <div class="field"><label class="field-label">Time</label><input type="time" id="meal2-time"></div>
-          <div class="field"><label class="field-label">What you ate</label><input type="text" id="meal2-food" placeholder="e.g. Greek yoghurt, nuts"></div>
-        </div>
-        <div class="meal-row">
-          <div class="field"><label class="field-label">Time</label><input type="time" id="meal3-time"></div>
-          <div class="field"><label class="field-label">What you ate</label><input type="text" id="meal3-food" placeholder="e.g. Grilled fish, vegetables"></div>
-        </div>
-        <div class="meal-row">
-          <div class="field"><label class="field-label">Time</label><input type="time" id="meal4-time"></div>
-          <div class="field"><label class="field-label">What you ate</label><input type="text" id="meal4-food" placeholder="e.g. Protein shake"></div>
-        </div>
-      </div>
-      <hr class="nutrition-divider">
-      <div class="grid-4">
-        <div class="field"><label class="field-label">Water (litres)</label><input type="number" id="water" placeholder="2.5" step="0.1"></div>
-        <div class="field"><label class="field-label">Sodium (mg)</label><input type="number" id="sodium" placeholder="1500"></div>
-        <div class="field"><label class="field-label">Alcohol (units)</label><input type="number" id="alcohol" placeholder="0" step="0.5"></div>
-        <div class="field"><label class="field-label">Caffeine (cups)</label><input type="number" id="caffeine" placeholder="0"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- WORKOUT -->
-  <div class="card">
-    <div class="card-header"><i class="fas fa-dumbbell"></i><span>Workout</span></div>
-    <div class="card-body">
-      <div class="grid-4">
-        <div class="field" style="grid-column:span 2"><label class="field-label">Type</label>
-          <select id="workout-type">
-            <option value="">— select —</option>
-            <option>Strength training</option>
-            <option>Cardio</option>
-            <option>HIIT</option>
-            <option>Yoga / stretching</option>
-            <option>Walk / run</option>
-            <option>Rest day</option>
-          </select>
-        </div>
-        <div class="field"><label class="field-label">Duration (min)</label><input type="number" id="workout-duration" placeholder="45"></div>
-        <div class="field"><label class="field-label">Intensity (1–10)</label><input type="number" id="workout-intensity" min="1" max="10" placeholder="7"></div>
-        <div class="field" style="grid-column:span 2"><label class="field-label">Location</label>
-          <select id="workout-location">
-            <option value="">— select —</option>
-            <option>Ibadan gym</option>
-            <option>Lagos gym</option>
-            <option>Home</option>
-            <option>Outdoors</option>
-          </select>
+        <div class="g3">
+          <div class="field"><label class="fl">Energy (1–10)</label><input type="number" id="energy" min="1" max="10" placeholder="7"></div>
+          <div class="field"><label class="fl">Stress (1–10)</label><input type="number" id="stress" min="1" max="10" placeholder="4"></div>
+          <div class="field"><label class="fl">Focus (1–10)</label><input type="number" id="focus" min="1" max="10" placeholder="7"></div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- HABITS -->
-  <div class="card">
-    <div class="card-header"><i class="fas fa-list-check"></i><span>Daily habits</span></div>
-    <div class="card-body"><div class="habits-grid" id="habits-grid"></div></div>
-  </div>
-
-  <!-- MOOD -->
-  <div class="card">
-    <div class="card-header"><i class="fas fa-brain"></i><span>Mood & mental</span></div>
-    <div class="card-body">
-      <div style="margin-bottom:14px">
-        <label class="field-label">Overall mood</label>
-        <div class="mood-row">
-          <button class="mood-btn" onclick="setMood(this,'great')">Great</button>
-          <button class="mood-btn" onclick="setMood(this,'good')">Good</button>
-          <button class="mood-btn" onclick="setMood(this,'neutral')">Neutral</button>
-          <button class="mood-btn" onclick="setMood(this,'low')">Low</button>
-          <button class="mood-btn" onclick="setMood(this,'stressed')">Stressed</button>
-        </div>
-      </div>
-      <div class="grid-3">
-        <div class="field"><label class="field-label">Energy (1–10)</label><input type="number" id="energy" min="1" max="10" placeholder="7"></div>
-        <div class="field"><label class="field-label">Stress (1–10)</label><input type="number" id="stress" min="1" max="10" placeholder="4"></div>
-        <div class="field"><label class="field-label">Focus (1–10)</label><input type="number" id="focus" min="1" max="10" placeholder="7"></div>
-      </div>
+    <!-- NOTES -->
+    <div class="card">
+      <div class="card-header"><i class="fas fa-pencil"></i><span class="ch-title">Notes & symptoms</span></div>
+      <div class="card-body"><textarea id="notes" placeholder="Symptoms, observations, how you feel post-Esidrex pause…"></textarea></div>
     </div>
-  </div>
 
-  <!-- NOTES -->
-  <div class="card">
-    <div class="card-header"><i class="fas fa-pencil"></i><span>Notes & symptoms</span></div>
-    <div class="card-body">
-      <textarea id="notes" placeholder="Symptoms, observations, how you feel post-Esidrex pause — headaches, dizziness, palpitations, fatigue, anything notable..."></textarea>
+    <div class="actions">
+      <button class="btn-sec" onclick="clearForm()"><i class="fas fa-rotate-left"></i> Clear</button>
+      <button class="btn-pri" id="save-btn" onclick="saveEntry()"><i class="fas fa-floppy-disk"></i> Save entry</button>
     </div>
-  </div>
 
-  <div class="actions">
-    <button class="btn-clear" onclick="clearForm()"><i class="fas fa-rotate-left"></i> Clear</button>
-    <button class="btn-save" onclick="saveEntry()"><i class="fas fa-floppy-disk"></i> Save entry</button>
   </div>
+</div>
 
-  <!-- LOG -->
-  <div class="card">
-    <div class="card-header" style="justify-content:space-between">
-      <div style="display:flex;align-items:center;gap:10px">
-        <i class="fas fa-clock-rotate-left" style="font-size:14px;color:var(--accent)"></i>
-        <span>Entry log</span>
-        <span id="entry-count" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text3)">0 entries</span>
-      </div>
-      <button class="btn-export" onclick="exportCSV()"><i class="fas fa-download"></i> Export CSV</button>
-    </div>
-    <div class="card-body" id="log-container">
-      <div class="log-empty">No entries yet — fill in today's data above and save.</div>
-    </div>
-  </div>
-
-</main>
 <div class="toast" id="toast"></div>
 
 <script>
-const HABITS = [
+const SHEET_SCRIPT = 'https://script.google.com/macros/s/AKfycbwcKqonYxkInxtJUWZ5rKo523SDZ7s_kfbiNnFYcM3xP92UFYsEhjbYqmfuenoHfMRc/exec';
+const PASSWORD = 'OGGodMode';
+const HABITS_LIST = [
   {id:'meditation',label:'Meditation'},{id:'no-smoking',label:'No smoking'},
   {id:'no-alcohol',label:'No alcohol'},{id:'morning-walk',label:'Morning walk'},
   {id:'meds',label:'Meds / supplements'},{id:'cold-shower',label:'Cold shower'},
   {id:'journaling',label:'Journaling'},{id:'reading',label:'Reading'},
   {id:'no-sugar',label:'No sugar'},{id:'sunlight',label:'Morning sunlight'},
 ];
-let selectedMood = '';
-let entries = JSON.parse(localStorage.getItem('og_tracker_entries') || '[]');
+let selectedMood='', allEntries=[], selectedDayIdx=0;
 
-document.addEventListener('DOMContentLoaded', () => {
-  setHeaderDate();
-  initHabits();
-  setDefaults();
-  renderLog();
-});
+// PAGE NAV
+function showPage(p){
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(x=>x.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  event.target.closest('.nav-tab').classList.add('active');
+  if(p==='dashboard') loadDashboard();
+}
 
-function setHeaderDate() {
-  const d = new Date();
-  document.getElementById('header-date').innerHTML =
-    d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'}) +
-    '<br>' + d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+// LOCK
+function checkPw(){
+  const pw=document.getElementById('pw-input').value;
+  const err=document.getElementById('lock-error');
+  if(pw===PASSWORD){
+    document.getElementById('lock-screen').style.display='none';
+    document.getElementById('editor-content').style.display='block';
+    setDefaults(); initHabits();
+    err.style.display='none';
+  } else {
+    err.style.display='block';
+    document.getElementById('pw-input').value='';
+  }
 }
-function setDefaults() {
-  const now = new Date();
-  document.getElementById('entry-date').value = now.toISOString().slice(0,10);
-  document.getElementById('entry-time').value = now.toTimeString().slice(0,5);
-}
-function initHabits() {
-  const grid = document.getElementById('habits-grid');
-  HABITS.forEach(h => {
-    const div = document.createElement('div');
-    div.className = 'habit-item'; div.id = 'hwrap-'+h.id;
-    div.innerHTML = `<input type="checkbox" id="h-${h.id}"><div class="habit-check" id="hck-${h.id}"></div><span class="habit-label">${h.label}</span>`;
-    div.addEventListener('click', () => {
-      const cb = document.getElementById('h-'+h.id);
-      cb.checked = !cb.checked;
-      div.classList.toggle('done', cb.checked);
-      document.getElementById('hck-'+h.id).innerHTML = cb.checked ? '✓' : '';
-    });
-    grid.appendChild(div);
+
+// UTILS
+function v(id){return document.getElementById(id)?.value?.trim()||'';}
+function bpAvg(vals){const n=vals.filter(x=>x!=='').map(Number);if(!n.length)return null;return Math.round(n.reduce((a,b)=>a+b,0)/n.length);}
+function timeToMins(t){if(!t)return null;const[h,m]=t.split(':').map(Number);return h*60+m;}
+function minsToHM(m){if(m===null||isNaN(m))return'--';const h=Math.floor(Math.abs(m)/60);const mn=Math.abs(m)%60;return h+'h '+String(mn).padStart(2,'0')+'m';}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+
+// INIT HABITS
+function initHabits(){
+  const g=document.getElementById('habits-grid');
+  if(g.children.length)return;
+  HABITS_LIST.forEach(h=>{
+    const d=document.createElement('div');d.className='habit-item';d.id='hw-'+h.id;
+    d.innerHTML=`<input type="checkbox" id="hc-${h.id}"><div class="hck" id="hck-${h.id}"></div><span class="habit-label">${h.label}</span>`;
+    d.addEventListener('click',()=>{const cb=document.getElementById('hc-'+h.id);cb.checked=!cb.checked;d.classList.toggle('done',cb.checked);document.getElementById('hck-'+h.id).innerHTML=cb.checked?'✓':'';});
+    g.appendChild(d);
   });
 }
-function setMood(btn, val) {
-  document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active'); selectedMood = val;
+function setMood(btn,val){document.querySelectorAll('.mood-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');selectedMood=val;}
+function setDefaults(){const now=new Date();document.getElementById('entry-date').value=now.toISOString().slice(0,10);document.getElementById('entry-time').value=now.toTimeString().slice(0,5);}
+
+// BP LIVE AVG
+function updateBP(){
+  const la=bpAvg([v('l1s'),v('l2s'),v('l3s')]),ld=bpAvg([v('l1d'),v('l2d'),v('l3d')]);
+  const ra=bpAvg([v('r1s'),v('r2s'),v('r3s')]),rd=bpAvg([v('r1d'),v('r2d'),v('r3d')]);
+  const lEl=document.getElementById('l-avg'),rEl=document.getElementById('r-avg');
+  if(la&&ld)lEl.innerHTML=`Avg: <strong class="${(la>=140||ld>=90)?'flag-high':''}">${la}/${ld} mmHg</strong>`;else lEl.innerHTML='';
+  if(ra&&rd)rEl.innerHTML=`Avg: <strong class="${(ra>=140||rd>=90)?'flag-high':''}">${ra}/${rd} mmHg</strong>`;else rEl.innerHTML='';
+  const d=document.getElementById('arm-diff');
+  if(la&&ra&&Math.abs(la-ra)>10){d.style.display='block';document.getElementById('arm-diff-text').textContent=`${Math.abs(la-ra)} mmHg arm difference — note for your doctor.`;}
+  else d.style.display='none';
 }
-function v(id) { return document.getElementById(id)?.value?.trim() || ''; }
-function bpAvg(vals) {
-  const nums = vals.filter(x => x !== '').map(Number);
-  if (!nums.length) return null;
-  return Math.round(nums.reduce((a,b)=>a+b,0)/nums.length);
-}
+['l1s','l2s','l3s','l1d','l2d','l3d','r1s','r2s','r3s','r1d','r2d','r3d'].forEach(id=>document.getElementById(id)?.addEventListener('input',updateBP));
 
-// IF TRACKER
-function timeToMins(t) {
-  if (!t) return null;
-  const [h,m] = t.split(':').map(Number);
-  return h * 60 + m;
-}
-function minsToHM(m) {
-  if (m === null || isNaN(m)) return '--';
-  const h = Math.floor(Math.abs(m)/60);
-  const min = Math.abs(m)%60;
-  return h + 'h ' + String(min).padStart(2,'0') + 'm';
-}
-function updateIF() {
-  const start = timeToMins(v('if-start'));
-  const open = timeToMins(v('if-open'));
-  const close = timeToMins(v('if-close'));
-  const badge = document.getElementById('if-status-badge');
-  const barWrap = document.getElementById('if-bar-wrap');
-  const bar = document.getElementById('if-bar-fill');
-  const stats = document.getElementById('if-stats');
-
-  if (start === null && open === null) { badge.style.display='none'; barWrap.style.display='none'; stats.innerHTML=''; return; }
-
-  barWrap.style.display = 'block';
-  badge.style.display = 'block';
-
-  // fast duration = from start to open (may cross midnight)
-  let fastMins = null, eatMins = null, totalFast = null;
-  if (start !== null && open !== null) {
-    fastMins = open >= start ? open - start : (1440 - start) + open;
-  }
-  if (open !== null && close !== null) {
-    eatMins = close >= open ? close - open : (1440 - open) + close;
-  }
-  if (start !== null && close !== null && open !== null) {
-    totalFast = fastMins;
-  }
-
-  // progress bar: proportion of 16hr fast completed
-  const TARGET_FAST = 16 * 60;
-  const TARGET_EAT = 8 * 60;
-
-  let pct = 0, barClass = '';
-  if (fastMins !== null && open === null) {
-    // still fasting
-    pct = Math.min(100, Math.round((fastMins / TARGET_FAST) * 100));
-    barClass = '';
-  } else if (open !== null && close === null) {
-    // in eating window
-    pct = 100;
-    barClass = 'eating';
-  } else if (close !== null) {
-    // done
-    pct = 100;
-    barClass = '';
-  }
-
-  bar.style.width = pct + '%';
-  bar.className = 'if-bar-fill' + (barClass ? ' ' + barClass : '');
-
-  // status badge
-  let statusClass = 'fasting', statusText = 'Fasting';
-  if (close !== null && open !== null) { statusClass='done'; statusText='Fast complete'; }
-  else if (open !== null) { statusClass='eating'; statusText='Eating window open'; }
-  badge.innerHTML = `<div class="if-status ${statusClass}"><div class="if-dot"></div>${statusText}</div>`;
-
-  // stats
-  let html = '';
-  if (fastMins !== null) html += `<div class="if-stat">Fast duration: <strong>${minsToHM(fastMins)}</strong> / 16h target</div>`;
-  if (eatMins !== null) html += `<div class="if-stat">Eating window: <strong>${minsToHM(eatMins)}</strong> / 8h target</div>`;
-  if (fastMins !== null) {
-    const deficit = TARGET_FAST - fastMins;
-    if (deficit > 0 && open === null) html += `<div class="if-stat">To target: <strong>${minsToHM(deficit)}</strong></div>`;
-  }
-  stats.innerHTML = html;
+// IF
+function updateIF(){
+  const s=timeToMins(v('if-start')),o=timeToMins(v('if-open')),c=timeToMins(v('if-close'));
+  const bw=document.getElementById('if-bar-wrap'),bar=document.getElementById('if-bar'),stats=document.getElementById('if-stats'),badge=document.getElementById('if-badge-wrap');
+  if(s===null&&o===null){bw.style.display='none';stats.innerHTML='';badge.innerHTML='';return;}
+  bw.style.display='block';
+  const fastMins=s!==null&&o!==null?(o>=s?o-s:(1440-s)+o):null;
+  const eatMins=o!==null&&c!==null?(c>=o?c-o:(1440-o)+c):null;
+  const TARGET=960;
+  let pct=0,barCls='',statusCls='fasting',statusTxt='Fasting';
+  if(c!==null&&o!==null){pct=100;statusCls='done';statusTxt='Fast complete';}
+  else if(o!==null){pct=100;barCls='eating';statusCls='eating';statusTxt='Eating window open';}
+  else if(fastMins!==null){pct=Math.min(100,Math.round(fastMins/TARGET*100));}
+  bar.style.width=pct+'%';bar.className='if-bar-fill'+(barCls?' '+barCls:'');
+  badge.innerHTML=`<div class="if-badge ${statusCls}"><div class="if-dot"></div>${statusTxt}</div>`;
+  let html='';
+  if(fastMins!==null)html+=`<div>Fast: <strong>${minsToHM(fastMins)}</strong> / 16h</div>`;
+  if(eatMins!==null)html+=`<div>Eating window: <strong>${minsToHM(eatMins)}</strong> / 8h</div>`;
+  if(fastMins!==null&&o===null)html+=`<div>To target: <strong>${minsToHM(TARGET-fastMins)}</strong></div>`;
+  stats.innerHTML=html;
 }
 
-// BP
-function updateBPAverages() {
-  const la = bpAvg([v('l1s'),v('l2s'),v('l3s')]);
-  const ld = bpAvg([v('l1d'),v('l2d'),v('l3d')]);
-  const ra = bpAvg([v('r1s'),v('r2s'),v('r3s')]);
-  const rd = bpAvg([v('r1d'),v('r2d'),v('r3d')]);
-  const lEl = document.getElementById('l-avg');
-  const rEl = document.getElementById('r-avg');
-  const diffEl = document.getElementById('arm-diff');
-  if (la && ld) {
-    const cls = (la>=140||ld>=90)?'flag-high':'';
-    lEl.innerHTML = `Avg: <strong class="${cls}">${la}/${ld} mmHg</strong>`;
-  } else lEl.innerHTML='';
-  if (ra && rd) {
-    const cls = (ra>=140||rd>=90)?'flag-high':'';
-    rEl.innerHTML = `Avg: <strong class="${cls}">${ra}/${rd} mmHg</strong>`;
-  } else rEl.innerHTML='';
-  if (la && ra) {
-    const diff = Math.abs(la - ra);
-    if (diff > 10) { diffEl.style.display='block'; document.getElementById('arm-diff-text').textContent=`${diff} mmHg difference between arms — note for your doctor.`; }
-    else diffEl.style.display='none';
-  } else diffEl.style.display='none';
-}
-['l1s','l2s','l3s','l1d','l2d','l3d','r1s','r2s','r3s','r1d','r2d','r3d'].forEach(id => {
-  document.getElementById(id)?.addEventListener('input', updateBPAverages);
-});
-
-function saveEntry() {
-  const meals = [1,2,3,4].map(i => ({ time: v('meal'+i+'-time'), food: v('meal'+i+'-food') })).filter(m => m.food || m.time);
-  const entry = {
-    date: v('entry-date') || new Date().toISOString().slice(0,10),
-    time: v('entry-time'),
-    bp: {
-      left:[{s:v('l1s'),d:v('l1d'),p:v('l1p')},{s:v('l2s'),d:v('l2d'),p:v('l2p')},{s:v('l3s'),d:v('l3d'),p:v('l3p')}],
-      right:[{s:v('r1s'),d:v('r1d'),p:v('r1p')},{s:v('r2s'),d:v('r2d'),p:v('r2p')},{s:v('r3s'),d:v('r3d'),p:v('r3p')}]
-    },
-    weight:v('weight'), waist:v('waist'), chest:v('chest'), hips:v('hips'), bodyfat:v('bodyfat'), rhr:v('rhr'),
-    sleep:{bed:v('bedtime'),wake:v('waketime'),quality:v('sleep-quality')},
-    if:{start:v('if-start'),open:v('if-open'),close:v('if-close')},
-    meals,
-    nutrition:{water:v('water'),sodium:v('sodium'),alcohol:v('alcohol'),caffeine:v('caffeine')},
-    workout:{type:v('workout-type'),duration:v('workout-duration'),intensity:v('workout-intensity'),location:v('workout-location')},
+// SAVE
+async function saveEntry(){
+  const btn=document.getElementById('save-btn');
+  btn.disabled=true;btn.innerHTML='<i class="fas fa-circle-notch fa-spin"></i> Saving…';
+  const la=bpAvg([v('l1s'),v('l2s'),v('l3s')]),ld=bpAvg([v('l1d'),v('l2d'),v('l3d')]);
+  const ra=bpAvg([v('r1s'),v('r2s'),v('r3s')]),rd=bpAvg([v('r1d'),v('r2d'),v('r3d')]);
+  const habits=HABITS_LIST.filter(h=>document.getElementById('hc-'+h.id)?.checked).map(h=>h.label).join(', ');
+  const payload={
+    password:PASSWORD,
+    date:v('entry-date')||new Date().toISOString().slice(0,10), time:v('entry-time'),
+    l_sys:la||'', l_dia:ld||'', r_sys:ra||'', r_dia:rd||'',
+    weight:v('weight'), waist:v('waist'), bodyfat:v('bodyfat'), rhr:v('rhr'),
+    sleep_quality:v('sleep-quality'), bedtime:v('bedtime'), waketime:v('waketime'),
+    if_start:v('if-start'), if_open:v('if-open'), if_close:v('if-close'),
+    meal1_time:v('m1t'), meal1_food:v('m1f'), meal2_time:v('m2t'), meal2_food:v('m2f'),
+    meal3_time:v('m3t'), meal3_food:v('m3f'), meal4_time:v('m4t'), meal4_food:v('m4f'),
+    water:v('water'), sodium:v('sodium'), alcohol:v('alcohol'), caffeine:v('caffeine'),
+    workout_type:v('workout-type'), workout_duration:v('workout-dur'),
     mood:selectedMood, energy:v('energy'), stress:v('stress'), focus:v('focus'),
-    habits:HABITS.filter(h=>document.getElementById('h-'+h.id)?.checked).map(h=>h.label),
-    notes:v('notes'), savedAt:new Date().toISOString()
+    habits, notes:v('notes')
   };
-  entries.unshift(entry);
-  localStorage.setItem('og_tracker_entries', JSON.stringify(entries));
-  renderLog();
-  showToast('Entry saved ✓');
+  try{
+    await fetch(SHEET_SCRIPT,{method:'POST',body:JSON.stringify(payload)});
+    showToast('Entry saved ✓');
+    clearForm();
+  }catch(e){showToast('Save failed — check connection');}
+  btn.disabled=false;btn.innerHTML='<i class="fas fa-floppy-disk"></i> Save entry';
 }
 
-function renderLog() {
-  const c = document.getElementById('log-container');
-  document.getElementById('entry-count').textContent = entries.length + (entries.length===1?' entry':' entries');
-  if (!entries.length) { c.innerHTML='<div class="log-empty">No entries yet — fill in today\'s data above and save.</div>'; return; }
-  c.innerHTML = entries.map(e => {
-    const la = bpAvg(e.bp.left.map(x=>x.s)), ld = bpAvg(e.bp.left.map(x=>x.d));
-    const ra = bpAvg(e.bp.right.map(x=>x.s)), rd = bpAvg(e.bp.right.map(x=>x.d));
-    const highL = la>=140||ld>=90, highR = ra>=140||rd>=90;
-    const mealsSummary = (e.meals||[]).map(m => m.time ? `${m.time} — ${m.food}` : m.food).filter(Boolean).join(', ');
-    const fastMins = e.if?.start && e.if?.open ? (() => { const s=timeToMins(e.if.start), o=timeToMins(e.if.open); return o>=s?o-s:(1440-s)+o; })() : null;
-    return `<div class="log-entry">
-      <div class="log-entry-head">
-        <span class="log-entry-date">${e.date}${e.time?' · '+e.time:''}</span>
-        ${e.mood?`<span class="mood-tag">${e.mood}</span>`:''}
-      </div>
-      <div class="bp-pills">
-        ${la&&ld?`<span class="bp-pill${highL?' high':''}">L: ${la}/${ld}</span>`:''}
-        ${ra&&rd?`<span class="bp-pill${highR?' high':''}">R: ${ra}/${rd}</span>`:''}
-        ${e.rhr?`<span class="bp-pill">HR: ${e.rhr}</span>`:''}
-        ${fastMins?`<span class="bp-pill">Fast: ${minsToHM(fastMins)}</span>`:''}
-      </div>
-      <div class="log-meta">
-        <span>${e.weight?'Weight: '+e.weight+' kg':''}</span>
-        <span>${e.sleep.quality?'Sleep: '+e.sleep.quality+'/10':''}</span>
-        <span>${e.workout.type?e.workout.type+(e.workout.duration?' · '+e.workout.duration+'min':''):''}</span>
-        <span>${e.nutrition.water?'Water: '+e.nutrition.water+' L':''}</span>
-        ${mealsSummary?`<span style="grid-column:1/-1;font-size:12px;color:var(--text3)">${mealsSummary}</span>`:''}
-        ${(e.habits||[]).length?`<span style="grid-column:1/-1;font-size:12px;color:var(--text3)">${e.habits.join(' · ')}</span>`:''}
-      </div>
-      ${e.notes?`<div class="log-notes">"${e.notes.slice(0,160)}${e.notes.length>160?'…':''}"</div>`:''}
-    </div>`;
-  }).join('');
-}
-
-function clearForm() {
+// CLEAR
+function clearForm(){
   ['l1s','l2s','l3s','l1d','l2d','l3d','l1p','l2p','l3p','r1s','r2s','r3s','r1d','r2d','r3d','r1p','r2p','r3p',
    'weight','waist','chest','hips','bodyfat','rhr','bedtime','waketime','sleep-quality',
-   'if-start','if-open','if-close',
-   'meal1-time','meal1-food','meal2-time','meal2-food','meal3-time','meal3-food','meal4-time','meal4-food',
-   'water','sodium','alcohol','caffeine','workout-duration','workout-intensity','energy','stress','focus','notes']
+   'if-start','if-open','if-close','m1t','m1f','m2t','m2f','m3t','m3f','m4t','m4f',
+   'water','sodium','alcohol','caffeine','workout-dur','workout-int','energy','stress','focus','notes']
    .forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  document.getElementById('workout-type').value='';
-  document.getElementById('workout-location').value='';
-  HABITS.forEach(h=>{
-    const cb=document.getElementById('h-'+h.id);
-    if(cb){cb.checked=false;document.getElementById('hwrap-'+h.id)?.classList.remove('done');document.getElementById('hck-'+h.id).innerHTML='';}
-  });
+  document.getElementById('workout-type').value='';document.getElementById('workout-loc').value='';
+  HABITS_LIST.forEach(h=>{const cb=document.getElementById('hc-'+h.id);if(cb){cb.checked=false;document.getElementById('hw-'+h.id)?.classList.remove('done');document.getElementById('hck-'+h.id).innerHTML='';}});
   document.querySelectorAll('.mood-btn').forEach(b=>b.classList.remove('active'));
   selectedMood='';
-  document.getElementById('l-avg').innerHTML=''; document.getElementById('r-avg').innerHTML='';
+  document.getElementById('l-avg').innerHTML='';document.getElementById('r-avg').innerHTML='';
   document.getElementById('arm-diff').style.display='none';
-  document.getElementById('if-status-badge').style.display='none';
-  document.getElementById('if-bar-wrap').style.display='none';
-  document.getElementById('if-stats').innerHTML='';
+  document.getElementById('if-badge-wrap').innerHTML='';document.getElementById('if-bar-wrap').style.display='none';document.getElementById('if-stats').innerHTML='';
   setDefaults();
 }
 
-function exportCSV() {
-  if (!entries.length) { showToast('No entries to export'); return; }
-  const rows = [['Date','Time','L SYS avg','L DIA avg','R SYS avg','R DIA avg','Weight','Waist','Body Fat','Resting HR','Sleep quality','Fast start','Eating window open','Eating window close','Meal 1 time','Meal 1','Meal 2 time','Meal 2','Meal 3 time','Meal 3','Meal 4 time','Meal 4','Water','Sodium','Alcohol','Caffeine','Workout','Duration','Mood','Energy','Stress','Focus','Habits','Notes']];
-  entries.forEach(e=>{
-    const la=bpAvg(e.bp.left.map(x=>x.s))||'', ld=bpAvg(e.bp.left.map(x=>x.d))||'';
-    const ra=bpAvg(e.bp.right.map(x=>x.s))||'', rd=bpAvg(e.bp.right.map(x=>x.d))||'';
-    const ms = (e.meals||[]).concat([{},{},{},{}]).slice(0,4);
-    rows.push([e.date,e.time,la,ld,ra,rd,e.weight,e.waist,e.bodyfat,e.rhr,e.sleep.quality,
-      e.if?.start||'',e.if?.open||'',e.if?.close||'',
-      ms[0].time||'',ms[0].food||'',ms[1].time||'',ms[1].food||'',ms[2].time||'',ms[2].food||'',ms[3].time||'',ms[3].food||'',
-      e.nutrition.water,e.nutrition.sodium,e.nutrition.alcohol,e.nutrition.caffeine,
-      e.workout.type,e.workout.duration,e.mood,e.energy,e.stress,e.focus,
-      (e.habits||[]).join('; '),`"${(e.notes||'').replace(/"/g,"'")}"`]);
-  });
-  const csv=rows.map(r=>r.join(',')).join('\n');
-  const blob=new Blob([csv],{type:'text/csv'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download='og-tracker-'+new Date().toISOString().slice(0,10)+'.csv';
-  a.click();
-  showToast('CSV exported');
+// DASHBOARD
+let bpChartInst=null, weightChartInst=null;
+
+async function loadDashboard(){
+  const loading=document.getElementById('dash-loading');
+  const content=document.getElementById('dash-content');
+  const empty=document.getElementById('dash-empty');
+  loading.style.display='block';content.style.display='none';empty.style.display='none';
+  try{
+    const res=await fetch(SHEET_SCRIPT);
+    const raw=await res.json();
+    // raw is array of rows; each row: [date,time,l_sys,l_dia,r_sys,r_dia,weight,waist,bodyfat,rhr,sleep_q,bedtime,waketime,if_start,if_open,if_close,m1t,m1f,m2t,m2f,m3t,m3f,m4t,m4f,water,sodium,alcohol,caffeine,wtype,wdur,mood,energy,stress,focus,habits,notes]
+    if(!raw||!raw.length){loading.style.display='none';empty.style.display='block';return;}
+    allEntries=raw.filter(r=>r[0]&&r[0]!=='').reverse(); // oldest first for charts
+    renderDashboard();
+    loading.style.display='none';content.style.display='block';
+  }catch(e){
+    loading.style.display='none';
+    document.getElementById('dash-subtitle').textContent='Could not load data.';
+  }
 }
-function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
+
+function renderDashboard(){
+  const latest=allEntries[allEntries.length-1];
+  document.getElementById('dash-subtitle').textContent=
+    'Last updated: '+latest[0]+(latest[1]?' at '+latest[1]:'');
+
+  // STAT CARDS
+  const lSys=parseFloat(latest[2]),lDia=parseFloat(latest[3]);
+  const rSys=parseFloat(latest[4]),rDia=parseFloat(latest[5]);
+  const weight=latest[6],mood=latest[30];
+  const highBP=(lSys>=140||lDia>=90||rSys>=140||rDia>=90);
+  const statsData=[
+    {label:'BP (Left avg)',val:(lSys&&lDia)?lSys+'/'+lDia:'—',sub:'mmHg',cls:highBP?'red':''},
+    {label:'BP (Right avg)',val:(rSys&&rDia)?rSys+'/'+rDia:'—',sub:'mmHg',cls:highBP?'red':''},
+    {label:'Weight',val:weight||'—',sub:'kg',cls:''},
+    {label:'Mood',val:mood||'—',sub:'today',cls:''},
+    {label:'Energy',val:latest[31]||'—',sub:'/ 10',cls:''},
+    {label:'Sleep',val:latest[10]||'—',sub:'/ 10 quality',cls:''},
+  ];
+  document.getElementById('stats-row').innerHTML=statsData.map(s=>`
+    <div class="stat-card">
+      <div class="stat-label">${s.label}</div>
+      <div class="stat-val ${s.cls}">${s.val}</div>
+      <div class="stat-sub">${s.sub}</div>
+    </div>`).join('');
+
+  // BP CHART
+  const labels=allEntries.map(r=>r[0]);
+  const lSysArr=allEntries.map(r=>parseFloat(r[2])||null);
+  const rSysArr=allEntries.map(r=>parseFloat(r[4])||null);
+  const lDiaArr=allEntries.map(r=>parseFloat(r[3])||null);
+  const CHART_DEFAULTS={responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#8a8680',font:{family:'DM Mono',size:11}}}},scales:{x:{ticks:{color:'#555250',font:{family:'DM Mono',size:10}},grid:{color:'rgba(255,255,255,0.05)'}},y:{ticks:{color:'#555250',font:{family:'DM Mono',size:10}},grid:{color:'rgba(255,255,255,0.05)'}}}};
+
+  if(bpChartInst)bpChartInst.destroy();
+  bpChartInst=new Chart(document.getElementById('bp-chart'),{
+    type:'line',
+    data:{labels,datasets:[
+      {label:'Left SYS',data:lSysArr,borderColor:'#c8f05a',backgroundColor:'rgba(200,240,90,0.08)',tension:0.3,pointRadius:3},
+      {label:'Right SYS',data:rSysArr,borderColor:'#5ab4ff',backgroundColor:'rgba(90,180,255,0.08)',tension:0.3,pointRadius:3},
+      {label:'Left DIA',data:lDiaArr,borderColor:'#f0a832',backgroundColor:'rgba(240,168,50,0.05)',tension:0.3,pointRadius:3,borderDash:[4,4]},
+    ]},
+    options:{...CHART_DEFAULTS,plugins:{...CHART_DEFAULTS.plugins,annotation:{annotations:{line140:{type:'line',yMin:140,yMax:140,borderColor:'rgba(255,90,90,0.4)',borderWidth:1,borderDash:[4,4]}}}}}
+  });
+
+  // WEIGHT CHART
+  if(weightChartInst)weightChartInst.destroy();
+  weightChartInst=new Chart(document.getElementById('weight-chart'),{
+    type:'line',
+    data:{labels,datasets:[{label:'Weight (kg)',data:allEntries.map(r=>parseFloat(r[6])||null),borderColor:'#c8f05a',backgroundColor:'rgba(200,240,90,0.08)',tension:0.3,pointRadius:3,fill:true}]},
+    options:CHART_DEFAULTS
+  });
+
+  // DAY SELECTOR
+  const sel=document.getElementById('day-selector');
+  const recent=[...allEntries].reverse().slice(0,10);
+  sel.innerHTML=recent.map((r,i)=>`<button class="day-btn${i===0?' active':''}" onclick="selectDay(${i},this)">${r[0]}</button>`).join('');
+  selectedDayIdx=0;
+  renderDailyReport(recent[0]);
+  window._recentEntries=recent;
+}
+
+function selectDay(idx,btn){
+  document.querySelectorAll('.day-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderDailyReport(window._recentEntries[idx]);
+}
+
+function renderDailyReport(r){
+  if(!r){document.getElementById('daily-report-content').innerHTML='<div class="empty-state">No data for this day.</div>';return;}
+  const lSys=parseFloat(r[2]),lDia=parseFloat(r[3]),rSys=parseFloat(r[4]),rDia=parseFloat(r[5]);
+  const highL=(lSys>=140||lDia>=90),highR=(rSys>=140||rDia>=90);
+  const meals=[[r[16],r[17]],[r[18],r[19]],[r[20],r[21]],[r[22],r[23]]].filter(m=>m[1]);
+  const habits=(r[34]||'').split(',').map(s=>s.trim()).filter(Boolean);
+  const fastStart=r[13],eatOpen=r[14],eatClose=r[15];
+  let fastDur='';
+  if(fastStart&&eatOpen){const s=timeToMins(fastStart),o=timeToMins(eatOpen);const mins=o>=s?o-s:(1440-s)+o;fastDur=minsToHM(mins);}
+
+  const rows=[
+    ['Date',r[0]+(r[1]?' · '+r[1]:'')],
+    ['BP Left',(lSys&&lDia)?`<span class="bp-badge${highL?' high':''}">${lSys}/${lDia}</span> mmHg`:'—'],
+    ['BP Right',(rSys&&rDia)?`<span class="bp-badge${highR?' high':''}">${rSys}/${rDia}</span> mmHg`:'—'],
+    ['Weight',r[6]?r[6]+' kg':'—'],
+    ['Sleep',r[10]?r[10]+'/10 quality'+(r[11]&&r[12]?' ('+r[11]+'–'+r[12]+')':''):'—'],
+    ['IF fast',fastDur||'—'],
+    ['Eating window',(eatOpen&&eatClose)?eatOpen+' – '+eatClose:'—'],
+    ['Water',r[24]?r[24]+' L':'—'],
+    ['Sodium',r[25]?r[25]+' mg':'—'],
+    ['Workout',r[28]?r[28]+(r[29]?' · '+r[29]+' min':''):'Rest'],
+    ['Mood',r[30]||'—'],
+    ['Energy / Stress / Focus',(r[31]||'—')+' / '+(r[32]||'—')+' / '+(r[33]||'—')],
+    ['Meals',meals.length?`<div class="meals-list">${meals.map(m=>`<div>${m[0]?m[0]+' — ':''}${m[1]}</div>`).join('')}</div>`:'—'],
+    ['Habits',habits.length?`<div class="habits-pills">${habits.map(h=>`<span class="habit-pill">${h}</span>`).join('')}</div>`:'—'],
+    ['Notes',r[35]?`<span style="color:var(--text2);font-style:italic">${r[35]}</span>`:'—'],
+  ];
+
+  document.getElementById('daily-report-content').innerHTML=`
+    <div class="daily-report">
+      ${rows.map(([k,val])=>`<div class="report-row"><span class="report-key">${k}</span><span class="report-val">${val}</span></div>`).join('')}
+    </div>`;
+}
+
+// Load dashboard on start
+window.addEventListener('DOMContentLoaded', loadDashboard);
 </script>
 </body>
 </html>
