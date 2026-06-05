@@ -810,14 +810,9 @@ async function estimateSodium(){
   const mealList=meals.map((m,i)=>`Meal ${i+1}${m.time?' at '+m.time:''}: ${m.food}`).join('\n');
 
   try{
-    const res=await fetch(SHEET_SCRIPT,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        action:'estimate_sodium',
-        meals:meals
-      })
-    });
+    const mealsParam = encodeURIComponent(JSON.stringify(meals));
+    const url = SHEET_SCRIPT + '?action=estimate_sodium&meals=' + mealsParam;
+    const res=await fetch(url);
     const rawText=await res.text();
     let parsed;
     try{ parsed=JSON.parse(rawText); }
