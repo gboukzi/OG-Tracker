@@ -1378,7 +1378,7 @@ function renderDailyReport(r){
       if(inside===0)return'❌ No';
       return'⚠️ Partially';
     })()],
-    ['Water',r[23]?r[23]+' L':'—'],
+    ['Water',(()=>{const w=parseFloat(r[23]);return(!isNaN(w)&&w>0)?w+' L':'—';})()],
     ['Sodium',(()=>{
       const s=parseFloat(r[24]);
       if(!s||isNaN(s))return'—';
