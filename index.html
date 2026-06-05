@@ -127,6 +127,15 @@ hr.div{border:none;border-top:1px solid var(--border);margin:14px 0;}
 .habit-pill{font-size:11px;padding:2px 9px;border-radius:20px;background:var(--accent-dim);color:var(--accent);border:1px solid rgba(200,240,90,0.2);}
 .empty-state{text-align:center;padding:3rem 1rem;color:var(--text3);font-family:'DM Mono',monospace;font-size:14px;}
 .loading{text-align:center;padding:2rem;color:var(--text3);font-family:'DM Mono',monospace;font-size:13px;}
+/* VALIDATION */
+.val-error{border-color:var(--red)!important;box-shadow:0 0 0 3px rgba(255,90,90,0.12)!important;}
+.val-warn{border-color:var(--amber)!important;box-shadow:0 0 0 3px rgba(240,168,50,0.12)!important;}
+.val-msg{font-size:11px;font-family:'DM Mono',monospace;margin-top:5px;display:none;align-items:center;gap:5px;}
+.val-msg.error{color:var(--red);display:flex;}
+.val-msg.warn{color:var(--amber);display:flex;}
+.val-summary{background:var(--red-dim);border:1px solid rgba(255,90,90,0.25);border-radius:var(--radius);padding:10px 14px;margin-bottom:1rem;font-size:13px;font-family:'DM Mono',monospace;color:var(--red);display:none;}
+.val-summary ul{margin-top:6px;padding-left:16px;}
+.val-summary li{margin-bottom:3px;}
 /* TOAST */
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--accent);color:var(--accent-text);padding:10px 20px;border-radius:30px;font-size:13px;font-weight:600;font-family:'DM Mono',monospace;z-index:1000;transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);pointer-events:none;}
 .toast.show{transform:translateX(-50%) translateY(0);}
@@ -217,8 +226,8 @@ hr.div{border:none;border-top:1px solid var(--border);margin:14px 0;}
       <div class="card-header"><i class="fas fa-calendar-day"></i><span class="ch-title">Entry date</span></div>
       <div class="card-body">
         <div class="g2">
-          <div class="field"><label class="fl">Date</label><input type="date" id="entry-date"></div>
-          <div class="field"><label class="fl">Time</label><input type="time" id="entry-time"></div>
+          <div class="field"><label class="fl">Date</label><input type="date" id="entry-date" oninput="validateDate()"><div class="val-msg" id="val-date-msg"><i class="fas fa-circle-xmark"></i><span></span></div></div>
+          <div class="field"><label class="fl">Time</label><input type="time" id="entry-time" oninput="validateBPTime()"></div>
         </div>
       </div>
     </div>
@@ -226,6 +235,7 @@ hr.div{border:none;border-top:1px solid var(--border);margin:14px 0;}
     <!-- BP -->
     <div class="card">
       <div class="card-header"><i class="fas fa-heart-pulse"></i><span class="ch-title">Blood pressure — morning readings</span></div>
+      <div style="padding:8px 18px 0; display:none" id="bp-time-warn"><div class="val-msg warn" style="display:flex"><i class="fas fa-triangle-exclamation"></i><span>BP readings are typically taken in the morning (before noon). You've logged a time after 12:00 PM.</span></div></div>
       <div class="card-body">
         <div class="bp-arms">
           <div class="arm-block">
@@ -287,11 +297,12 @@ hr.div{border:none;border-top:1px solid var(--border);margin:14px 0;}
         <div id="if-badge-wrap"></div>
         <div class="g3" style="margin-bottom:10px">
           <div class="field"><label class="fl">Fast started</label><input type="time" id="if-start" oninput="updateIF()"></div>
-          <div class="field"><label class="fl">Eating window open</label><input type="time" id="if-open" oninput="updateIF()"></div>
-          <div class="field"><label class="fl">Eating window closed</label><input type="time" id="if-close" oninput="updateIF()"></div>
+          <div class="field"><label class="fl">Eating window open</label><input type="time" id="if-open" oninput="updateIF(); validateIF()"></div>
+          <div class="field"><label class="fl">Eating window closed</label><input type="time" id="if-close" oninput="updateIF(); validateIF()"></div>
         </div>
         <div id="if-bar-wrap" style="display:none"><div class="if-bar-bg"><div class="if-bar-fill" id="if-bar" style="width:0%"></div></div></div>
         <div class="if-stats" id="if-stats"></div>
+        <div class="val-msg" id="val-if-msg" style="margin-top:8px"><i class="fas fa-triangle-exclamation"></i><span></span></div>
       </div>
     </div>
 
@@ -300,10 +311,11 @@ hr.div{border:none;border-top:1px solid var(--border);margin:14px 0;}
       <div class="card-header"><i class="fas fa-bowl-food"></i><span class="ch-title">Nutrition & meals</span></div>
       <div class="card-body">
         <label class="fl" style="margin-bottom:10px">Meals</label>
-        <div class="meal-row"><div class="field"><label class="fl">Time</label><input type="time" id="m1t"></div><div class="field"><label class="fl">What you ate</label><input type="text" id="m1f" placeholder="e.g. Jollof rice, chicken"></div></div>
-        <div class="meal-row"><div class="field"><label class="fl">Time</label><input type="time" id="m2t"></div><div class="field"><label class="fl">What you ate</label><input type="text" id="m2f" placeholder="e.g. Greek yoghurt, nuts"></div></div>
-        <div class="meal-row"><div class="field"><label class="fl">Time</label><input type="time" id="m3t"></div><div class="field"><label class="fl">What you ate</label><input type="text" id="m3f" placeholder="e.g. Grilled fish, veg"></div></div>
-        <div class="meal-row"><div class="field"><label class="fl">Time</label><input type="time" id="m4t"></div><div class="field"><label class="fl">What you ate</label><input type="text" id="m4f" placeholder="e.g. Protein shake"></div></div>
+        <div class="meal-row"><div class="field"><label class="fl">Time</label><input type="time" id="m1t" oninput="validateMealTimes()"></div><div class="field"><label class="fl">What you ate</label><input type="text" id="m1f" placeholder="e.g. Jollof rice, chicken"></div></div>
+        <div class="meal-row"><div class="field"><label class="fl">Time</label><input type="time" id="m2t" oninput="validateMealTimes()"></div><div class="field"><label class="fl">What you ate</label><input type="text" id="m2f" placeholder="e.g. Greek yoghurt, nuts"></div></div>
+        <div class="meal-row"><div class="field"><label class="fl">Time</label><input type="time" id="m3t" oninput="validateMealTimes()"></div><div class="field"><label class="fl">What you ate</label><input type="text" id="m3f" placeholder="e.g. Grilled fish, veg"></div></div>
+        <div class="meal-row"><div class="field"><label class="fl">Time</label><input type="time" id="m4t" oninput="validateMealTimes()"></div><div class="field"><label class="fl">What you ate</label><input type="text" id="m4f" placeholder="e.g. Protein shake"></div></div>
+        <div class="val-msg" id="val-meals-msg" style="margin-bottom:8px"><i class="fas fa-triangle-exclamation"></i><span></span></div>
         <hr class="div">
         <div class="g4">
           <div class="field"><label class="fl">Water (L)</label><input type="number" id="water" placeholder="2.5" step="0.1"></div>
@@ -365,6 +377,10 @@ hr.div{border:none;border-top:1px solid var(--border);margin:14px 0;}
       <div class="card-body"><textarea id="notes" placeholder="Symptoms, observations, how you feel post-Esidrex pause…"></textarea></div>
     </div>
 
+    <div class="val-summary" id="val-summary">
+      <strong><i class="fas fa-circle-xmark"></i> Please fix the following before saving:</strong>
+      <ul id="val-summary-list"></ul>
+    </div>
     <div class="actions">
       <button class="btn-sec" onclick="clearForm()"><i class="fas fa-rotate-left"></i> Clear</button>
       <button class="btn-pri" id="save-btn" onclick="saveEntry()"><i class="fas fa-floppy-disk"></i> Save entry</button>
@@ -430,7 +446,118 @@ function initHabits(){
   });
 }
 function setMood(btn,val){document.querySelectorAll('.mood-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');selectedMood=val;}
-function setDefaults(){const now=new Date();document.getElementById('entry-date').value=now.toISOString().slice(0,10);document.getElementById('entry-time').value=now.toTimeString().slice(0,5);}
+function setDefaults(){
+  const now=new Date();
+  const today=now.toISOString().slice(0,10);
+  const yesterday=new Date(now-86400000).toISOString().slice(0,10);
+  const dateEl=document.getElementById('entry-date');
+  dateEl.value=today;
+  dateEl.min=yesterday;
+  dateEl.max=today;
+  document.getElementById('entry-time').value=now.toTimeString().slice(0,5);
+}
+
+// ── VALIDATION ───────────────────────────────────────────────
+function setFieldState(id, state, msg){
+  const el=document.getElementById(id);
+  if(!el)return;
+  el.classList.remove('val-error','val-warn');
+  if(state)el.classList.add(state==='error'?'val-error':'val-warn');
+  const msgEl=document.getElementById('val-'+id+'-msg');
+  if(msgEl){
+    msgEl.className='val-msg'+(state?' '+state:'');
+    const span=msgEl.querySelector('span');
+    if(span)span.textContent=msg||'';}
+}
+
+function validateDate(){
+  const val=v('entry-date');
+  const el=document.getElementById('entry-date');
+  if(!val){setFieldState('entry-date','error','Date is required.');return false;}
+  const now=new Date();
+  const today=now.toISOString().slice(0,10);
+  const yesterday=new Date(now-86400000).toISOString().slice(0,10);
+  if(val<yesterday){setFieldState('entry-date','error','You can only log today or yesterday (T+1).');return false;}
+  if(val>today){setFieldState('entry-date','error','You cannot log a future date.');return false;}
+  setFieldState('entry-date',null,'');
+  return true;
+}
+
+function validateBPTime(){
+  const t=v('entry-time');
+  const warn=document.getElementById('bp-time-warn');
+  if(!warn)return;
+  if(t&&timeToMins(t)>=720){warn.style.display='block';}
+  else{warn.style.display='none';}
+}
+
+function validateIF(){
+  const open=v('if-open'),close=v('if-close'),start=v('if-start');
+  const msgEl=document.getElementById('val-if-msg');
+  if(!msgEl)return true;
+  // check eating window <= 8hrs
+  if(open&&close){
+    const o=timeToMins(open),c=timeToMins(close);
+    const eatMins=c>=o?c-o:(1440-o)+c;
+    if(eatMins>480){
+      msgEl.className='val-msg warn';
+      msgEl.querySelector('span').textContent='Eating window is '+minsToHM(eatMins)+' — exceeds the 8hr target for 16:8.';
+      return false;
+    }
+  }
+  msgEl.className='val-msg';
+  return true;
+}
+
+function validateMealTimes(){
+  const open=v('if-open'),close=v('if-close');
+  const msgEl=document.getElementById('val-meals-msg');
+  if(!msgEl)return true;
+  if(!open||!close){msgEl.className='val-msg';return true;}
+  const o=timeToMins(open),c=timeToMins(close);
+  const outsideMeals=[];
+  for(let i=1;i<=4;i++){
+    const mt=v('m'+i+'t'),mf=v('m'+i+'f');
+    if(!mt||!mf)continue;
+    const m=timeToMins(mt);
+    let inside;
+    if(c>=o){inside=m>=o&&m<=c;}
+    else{inside=m>=o||m<=c;}
+    if(!inside)outsideMeals.push('Meal '+i+' ('+mt+')');
+  }
+  if(outsideMeals.length){
+    msgEl.className='val-msg warn';
+    msgEl.querySelector('span').textContent=outsideMeals.join(', ')+' fall outside your eating window ('+open+'–'+close+').';
+    return false;
+  }
+  msgEl.className='val-msg';
+  return true;
+}
+
+function validateAll(){
+  const errors=[];
+  const warnings=[];
+  if(!validateDate())errors.push('Date: '+( document.getElementById('val-date-msg')?.querySelector('span')?.textContent||'Invalid date' ));
+  validateBPTime();
+  if(!validateIF()){
+    const msg=document.getElementById('val-if-msg')?.querySelector('span')?.textContent;
+    if(msg)warnings.push('IF: '+msg);
+  }
+  if(!validateMealTimes()){
+    const msg=document.getElementById('val-meals-msg')?.querySelector('span')?.textContent;
+    if(msg)warnings.push('Meals: '+msg);
+  }
+  const summary=document.getElementById('val-summary');
+  const list=document.getElementById('val-summary-list');
+  if(errors.length){
+    summary.style.display='block';
+    list.innerHTML=errors.map(e=>'<li>'+e+'</li>').join('');
+    summary.scrollIntoView({behavior:'smooth',block:'nearest'});
+    return false;
+  }
+  summary.style.display='none';
+  return true;
+}
 
 // BP LIVE AVG
 function updateBP(){
@@ -469,6 +596,7 @@ function updateIF(){
 
 // SAVE
 async function saveEntry(){
+  if(!validateAll())return;
   const btn=document.getElementById('save-btn');
   btn.disabled=true;btn.innerHTML='<i class="fas fa-circle-notch fa-spin"></i> Saving…';
   const la=bpAvg([v('l1s'),v('l2s'),v('l3s')]),ld=bpAvg([v('l1d'),v('l2d'),v('l3d')]);
