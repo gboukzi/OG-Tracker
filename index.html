@@ -811,20 +811,22 @@ async function estimateSodium(){
 
   try{
     const mealsParam = encodeURIComponent(JSON.stringify(meals));
-    const url = SHEET_SCRIPT + '?action=estimate_sodium&meals=' + mealsParam;
-    const res = await fetch(url);
-    const rawText = await res.text();
+    const scriptUrl = SHEET_SCRIPT + '?action=estimate_sodium&meals=' + mealsParam;
+    const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(scriptUrl);
+    const res = await fetch(proxyUrl);
+    const proxyJson = await res.json();
+    // allorigins wraps response in {contents: "..."}
+    const rawText = proxyJson.contents || JSON.stringify(proxyJson);
     let parsed;
     try{
       const clean = rawText.replace(/```json|```/g,'').trim();
-      // Handle both direct JSON and wrapped API response
       const outer = JSON.parse(clean);
       if(outer.content && outer.content[0] && outer.content[0].text){
         parsed = JSON.parse(outer.content[0].text.replace(/```json|```/g,'').trim());
-      } else if(outer.meals) {
+      } else if(outer.meals){
         parsed = outer;
       } else {
-        throw new Error('Unexpected response shape');
+        throw new Error('Unexpected shape: '+clean.slice(0,150));
       }
     }catch(e){ throw new Error('Parse error: '+rawText.slice(0,200)); }
 
