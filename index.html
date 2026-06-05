@@ -810,34 +810,14 @@ async function estimateSodium(){
   const mealList=meals.map((m,i)=>`Meal ${i+1}${m.time?' at '+m.time:''}: ${m.food}`).join('\n');
 
   try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
+    const res=await fetch(SHEET_SCRIPT,{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:1000,
-        messages:[{
-          role:'user',
-          content:`You are a nutrition assistant. Estimate the sodium content in milligrams for each of these meals eaten by a Nigerian adult. Use typical Nigerian portion sizes and cooking methods. Be realistic — Nigerian food (jollof rice, stews, soups) tends to be high in sodium due to seasoning cubes like Maggi and salt.
-
-Meals:
-${mealList}
-
-Respond ONLY with valid JSON, no markdown, no explanation:
-{
-  "meals": [
-    {"name": "meal description", "sodium_mg": number, "notes": "brief reason"}
-  ],
-  "total_mg": number,
-  "rating": "low|moderate|high|very_high",
-  "advice": "one short sentence of advice"
-}`
-        }]
+        action:'estimate_sodium',
+        meals:meals
       })
     });
-    const data=await res.json();
-    const text=data.content.filter(b=>b.type==='text').map(b=>b.text).join('');
-    const parsed=JSON.parse(text.replace(/```json|```/g,'').trim());
+    const parsed=await res.json();
 
     // Store sodium value for save
     document.getElementById('sodium').value=parsed.total_mg||'';
