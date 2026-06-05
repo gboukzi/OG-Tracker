@@ -141,6 +141,19 @@ hr.div{border:none;border-top:1px solid var(--border);margin:14px 0;}
 .toggle-switch input:checked~.toggle-thumb{background:var(--accent);transform:translateX(18px);}
 .workout-fields{transition:opacity 0.2s;}
 .workout-fields.disabled{opacity:0.3;pointer-events:none;}
+/* SLEEP */
+.sleep-session{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:8px;position:relative;}
+.sleep-session-label{font-size:11px;font-family:'DM Mono',monospace;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;}
+.sleep-session-grid{display:grid;grid-template-columns:90px 1fr 90px 1fr;gap:8px;align-items:end;}
+.sleep-arrow{display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:12px;padding-bottom:2px;}
+.sleep-duration{font-family:'DM Mono',monospace;font-size:12px;color:var(--accent);margin-top:6px;}
+.sleep-total{background:var(--accent-dim);border:1px solid rgba(200,240,90,0.2);border-radius:var(--radius);padding:10px 14px;margin-top:10px;display:flex;justify-content:space-between;align-items:center;}
+.sleep-total-label{font-size:12px;font-family:'DM Mono',monospace;color:var(--text2);}
+.sleep-total-val{font-size:1.1rem;font-family:'DM Mono',monospace;font-weight:500;color:var(--accent);}
+.add-session-btn{display:flex;align-items:center;gap:6px;font-size:12px;font-family:'DM Mono',monospace;color:var(--text2);background:transparent;border:1px dashed var(--border2);border-radius:var(--radius);padding:8px 14px;cursor:pointer;width:100%;justify-content:center;margin-top:6px;transition:all 0.15s;}
+.add-session-btn:hover{color:var(--text);border-color:rgba(255,255,255,0.2);}
+.remove-session-btn{background:transparent;border:none;color:var(--text3);cursor:pointer;font-size:12px;padding:0;transition:color 0.12s;}
+.remove-session-btn:hover{color:var(--red);}
 /* VALIDATION */
 .val-error{border-color:var(--red)!important;box-shadow:0 0 0 3px rgba(255,90,90,0.12)!important;}
 .val-warn{border-color:var(--amber)!important;box-shadow:0 0 0 3px rgba(240,168,50,0.12)!important;}
@@ -294,12 +307,16 @@ hr.div{border:none;border-top:1px solid var(--border);margin:14px 0;}
 
     <!-- SLEEP -->
     <div class="card">
-      <div class="card-header"><i class="fas fa-moon"></i><span class="ch-title">Sleep</span></div>
+      <div class="card-header"><i class="fas fa-moon"></i><span class="ch-title">Sleep sessions</span></div>
       <div class="card-body">
-        <div class="g3">
-          <div class="field"><label class="fl">Bedtime</label><input type="time" id="bedtime"></div>
-          <div class="field"><label class="fl">Wake time</label><input type="time" id="waketime"></div>
-          <div class="field"><label class="fl">Quality (1–10)</label><input type="number" id="sleep-quality" min="1" max="10" placeholder="7"></div>
+        <div id="sleep-sessions"></div>
+        <button class="add-session-btn" onclick="addSleepSession()" id="add-session-btn"><i class="fas fa-plus"></i> Add session</button>
+        <div class="sleep-total" id="sleep-total" style="display:none">
+          <span class="sleep-total-label">Total sleep today</span>
+          <span class="sleep-total-val" id="sleep-total-val">0h 00m</span>
+        </div>
+        <div style="margin-top:12px">
+          <div class="field"><label class="fl">Overall quality (1–10)</label><input type="number" id="sleep-quality" min="1" max="10" placeholder="7" style="max-width:140px"></div>
         </div>
       </div>
     </div>
@@ -443,7 +460,7 @@ function checkPw(){
   if(pw===PASSWORD){
     document.getElementById('lock-screen').style.display='none';
     document.getElementById('editor-content').style.display='block';
-    setDefaults(); initHabits();
+    setDefaults(); initHabits(); initSleepSessions();
     err.style.display='none';
   } else {
     err.style.display='block';
@@ -622,7 +639,8 @@ function toggleWorkout(cb){
   } else {
     fields.classList.add('disabled');
     label.textContent = 'Lazy day 😅';
-    document.getElementById('workout-type').value='';
+    initSleepSessions();
+  document.getElementById('workout-type').value='';
     document.getElementById('workout-dur').value='';
     document.getElementById('workout-int').value='';
     document.getElementById('workout-loc').value='';
@@ -664,7 +682,7 @@ async function saveEntry(){
     date:v('entry-date')||new Date().toISOString().slice(0,10), time:v('entry-time'),
     l_sys:la||'', l_dia:ld||'', r_sys:ra||'', r_dia:rd||'',
     weight:v('weight'), waist:v('waist'), bodyfat:v('bodyfat'), rhr:v('rhr'),
-    sleep_quality:v('sleep-quality'), bedtime:v('bedtime'), waketime:v('waketime'),
+    sleep_quality:v('sleep-quality'), sleep_sessions:getSleepSessionsJSON(),
     if_start:v('if-start'), if_open:v('if-open'), if_close:v('if-close'),
     meal1_time:v('m1t'), meal1_food:v('m1f'), meal2_time:v('m2t'), meal2_food:v('m2f'),
     meal3_time:v('m3t'), meal3_food:v('m3f'), meal4_time:v('m4t'), meal4_food:v('m4f'),
@@ -684,7 +702,7 @@ async function saveEntry(){
 // CLEAR
 function clearForm(){
   ['l1s','l2s','l3s','l1d','l2d','l3d','l1p','l2p','l3p','r1s','r2s','r3s','r1d','r2d','r3d','r1p','r2p','r3p',
-   'weight','waist','chest','hips','bodyfat','rhr','bedtime','waketime','sleep-quality',
+   'weight','waist','chest','hips','bodyfat','rhr','sleep-quality',
    'if-start','if-open','if-close','m1t','m1f','m2t','m2f','m3t','m3f','m4t','m4f',
    'water','sodium','alcohol','caffeine','workout-dur','workout-int','energy','stress','focus','notes']
    .forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
@@ -698,6 +716,139 @@ function clearForm(){
   setDefaults();
 }
 
+// SLEEP SESSIONS
+let sleepSessionCount = 0;
+
+function initSleepSessions(){
+  sleepSessionCount = 0;
+  document.getElementById('sleep-sessions').innerHTML = '';
+  document.getElementById('sleep-total').style.display = 'none';
+  document.getElementById('add-session-btn').style.display = 'flex';
+  addSleepSession(); // start with one session
+}
+
+function addSleepSession(){
+  if(sleepSessionCount >= 4) return;
+  sleepSessionCount++;
+  const idx = sleepSessionCount;
+  const now = new Date();
+  const todayVal = now.toISOString().slice(0,10);
+  const yesterdayVal = new Date(now-86400000).toISOString().slice(0,10);
+
+  const labels = ['Main sleep','Nap / early morning','Third session','Fourth session'];
+  const label = labels[idx-1] || ('Session '+idx);
+
+  const div = document.createElement('div');
+  div.className = 'sleep-session';
+  div.id = 'sleep-sess-'+idx;
+  div.innerHTML = `
+    <div class="sleep-session-label">
+      <span>${label}</span>
+      ${idx>1?`<button class="remove-session-btn" onclick="removeSleepSession(${idx})" title="Remove"><i class="fas fa-xmark"></i></button>`:''}
+    </div>
+    <div class="sleep-session-grid">
+      <div class="field"><label class="fl">Slept date</label>
+        <select id="ss${idx}-date" onchange="calcSleepDuration(${idx})">
+          <option value="${yesterdayVal}">Yesterday</option>
+          <option value="${todayVal}" selected>Today</option>
+        </select>
+      </div>
+      <div class="field"><label class="fl">Slept time</label><input type="time" id="ss${idx}-start" oninput="calcSleepDuration(${idx})"></div>
+      <div class="field"><label class="fl">Woke date</label>
+        <select id="ss${idx}-wdate" onchange="calcSleepDuration(${idx})">
+          <option value="${yesterdayVal}">Yesterday</option>
+          <option value="${todayVal}" selected>Today</option>
+        </select>
+      </div>
+      <div class="field"><label class="fl">Woke time</label><input type="time" id="ss${idx}-end" oninput="calcSleepDuration(${idx})"></div>
+    </div>
+    <div class="sleep-duration" id="ss${idx}-dur"></div>`;
+  document.getElementById('sleep-sessions').appendChild(div);
+  if(sleepSessionCount >= 4) document.getElementById('add-session-btn').style.display = 'none';
+}
+
+function removeSleepSession(idx){
+  const el = document.getElementById('sleep-sess-'+idx);
+  if(el) el.remove();
+  sleepSessionCount--;
+  document.getElementById('add-session-btn').style.display = 'flex';
+  updateSleepTotal();
+}
+
+function calcSleepDuration(idx){
+  const sd = document.getElementById('ss'+idx+'-date')?.value;
+  const st = document.getElementById('ss'+idx+'-start')?.value;
+  const wd = document.getElementById('ss'+idx+'-wdate')?.value;
+  const wt = document.getElementById('ss'+idx+'-end')?.value;
+  const durEl = document.getElementById('ss'+idx+'-dur');
+  if(!st||!wt||!sd||!wd){if(durEl)durEl.textContent='';updateSleepTotal();return;}
+  const sleepDt = new Date(sd+'T'+st);
+  const wakeDt = new Date(wd+'T'+wt);
+  let diffMins = (wakeDt - sleepDt) / 60000;
+  if(diffMins<=0){if(durEl)durEl.textContent='⚠ Wake time is before sleep time — check dates.';updateSleepTotal();return;}
+  if(durEl) durEl.textContent = '⏱ '+minsToHM(diffMins);
+  updateSleepTotal();
+}
+
+function updateSleepTotal(){
+  const sessions = getSleepSessions();
+  let total = 0;
+  sessions.forEach(s=>{
+    if(s.sleepDate&&s.sleepTime&&s.wakeDate&&s.wakeTime){
+      const sd=new Date(s.sleepDate+'T'+s.sleepTime);
+      const wd=new Date(s.wakeDate+'T'+s.wakeTime);
+      const diff=(wd-sd)/60000;
+      if(diff>0)total+=diff;
+    }
+  });
+  const totalEl = document.getElementById('sleep-total');
+  const valEl = document.getElementById('sleep-total-val');
+  if(total>0){
+    totalEl.style.display='flex';
+    valEl.textContent = minsToHM(total);
+  } else {
+    totalEl.style.display='none';
+  }
+}
+
+function getSleepSessions(){
+  const sessions=[];
+  for(let i=1;i<=4;i++){
+    const el=document.getElementById('sleep-sess-'+i);
+    if(!el)continue;
+    sessions.push({
+      idx:i,
+      sleepDate:document.getElementById('ss'+i+'-date')?.value||'',
+      sleepTime:document.getElementById('ss'+i+'-start')?.value||'',
+      wakeDate:document.getElementById('ss'+i+'-wdate')?.value||'',
+      wakeTime:document.getElementById('ss'+i+'-end')?.value||''
+    });
+  }
+  return sessions;
+}
+
+function getSleepSessionsJSON(){
+  return JSON.stringify(getSleepSessions());
+}
+
+function parseSleepSessions(raw){
+  if(!raw) return [];
+  try{ return JSON.parse(raw); }catch(e){ return []; }
+}
+
+function calcTotalSleepHours(sessions){
+  let total=0;
+  (sessions||[]).forEach(s=>{
+    if(s.sleepDate&&s.sleepTime&&s.wakeDate&&s.wakeTime){
+      const sd=new Date(s.sleepDate+'T'+s.sleepTime);
+      const wd=new Date(s.wakeDate+'T'+s.wakeTime);
+      const diff=(wd-sd)/60000;
+      if(diff>0)total+=diff/60;
+    }
+  });
+  return total;
+}
+
 // DASHBOARD
 let bpChartInst=null, weightChartInst=null;
 
@@ -709,7 +860,7 @@ async function loadDashboard(){
   try{
     const res=await fetch(SHEET_SCRIPT);
     const raw=await res.json();
-    // raw is array of rows; each row: [date,time,l_sys,l_dia,r_sys,r_dia,weight,waist,bodyfat,rhr,sleep_q,bedtime,waketime,if_start,if_open,if_close,m1t,m1f,m2t,m2f,m3t,m3f,m4t,m4f,water,sodium,alcohol,caffeine,wtype,wdur,mood,energy,stress,focus,habits,notes]
+    // raw is array of rows; each row: [date,time,l_sys,l_dia,r_sys,r_dia,weight,waist,bodyfat,rhr,sleep_q,sleep_sessions,if_start,if_open,if_close,m1t,m1f,m2t,m2f,m3t,m3f,m4t,m4f,water,sodium,alcohol,caffeine,wtype,wdur,mood,energy,stress,focus,habits,notes]
     if(!raw||!raw.length){loading.style.display='none';empty.style.display='block';return;}
     allEntries=raw.filter(r=>r[0]&&r[0]!=='').reverse(); // oldest first for charts
     renderDashboard();
@@ -801,7 +952,31 @@ function renderDailyReport(r){
     ['BP Left',(lSys&&lDia)?`<span class="bp-badge${highL?' high':''}">${lSys}/${lDia}</span> mmHg`:'—'],
     ['BP Right',(rSys&&rDia)?`<span class="bp-badge${highR?' high':''}">${rSys}/${rDia}</span> mmHg`:'—'],
     ['Weight',r[6]?r[6]+' kg':'—'],
-    ['Sleep',r[10]?r[10]+'/10 quality'+(r[11]&&r[12]?' ('+r[11]+'–'+r[12]+')':''):'—'],
+    ...(()=>{
+      const sess = parseSleepSessions(r[11]);
+      const q = r[10] ? ' · Quality: '+r[10]+'/10' : '';
+      if(!sess||!sess.length) return [['Sleep','—']];
+      const rows = [];
+      sess.forEach((s,i)=>{
+        if(!s.sleepTime&&!s.wakeTime) return;
+        const label = i===0 ? '🌙 Nightly sleep' : '😴 Nap '+i;
+        let dur='';
+        if(s.sleepDate&&s.sleepTime&&s.wakeDate&&s.wakeTime){
+          const sd=new Date(s.sleepDate+'T'+s.sleepTime);
+          const wd=new Date(s.wakeDate+'T'+s.wakeTime);
+          const mins=(wd-sd)/60000;
+          if(mins>0)dur=minsToHM(mins);
+        }
+        const timeStr=s.sleepTime&&s.wakeTime?s.sleepTime+' → '+s.wakeTime:'';
+        const val=[timeStr,dur?'('+dur+')':''].filter(Boolean).join(' ')+(i===0?q:'');
+        rows.push([label,val||'—']);
+      });
+      if(sess.length>1){
+        const total=calcTotalSleepHours(sess);
+        if(total>0)rows.push(['Total sleep',minsToHM(Math.round(total*60))]);
+      }
+      return rows.length?rows:[['Sleep','—']];
+    })(),
     ['IF fast',fastDur||'—'],
     ['Eating window',(eatOpen&&eatClose)?eatOpen+' – '+eatClose:'—'],
     ['Water',r[24]?r[24]+' L':'—'],
