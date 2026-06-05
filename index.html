@@ -325,11 +325,29 @@ hr.div{border:none;border-top:1px solid var(--border);margin:14px 0;}
     <div class="card">
       <div class="card-header"><i class="fas fa-hourglass-half"></i><span class="ch-title">Intermittent fasting — 16:8</span></div>
       <div class="card-body">
+        <!-- Fixed window: 12:00–19:00 -->
         <div id="if-badge-wrap"></div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:12px;font-family:'DM Mono',monospace;color:var(--text2)">Eating window</span>
+          <span style="font-size:13px;font-family:'DM Mono',monospace;color:var(--accent);font-weight:500">12:00 PM — 7:00 PM</span>
+        </div>
         <div class="g3" style="margin-bottom:10px">
-          <div class="field"><label class="fl">Last meal / fast started</label><input type="time" id="if-start" oninput="autoCalcWindow(); updateIF()"><div style="font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;margin-top:4px">Window auto-calculates from this</div></div>
-          <div class="field"><label class="fl">Eating window opens <span style="color:var(--accent);font-size:10px">auto</span></label><input type="time" id="if-open" oninput="updateIF(); validateIF()"></div>
-          <div class="field"><label class="fl">Eating window closes <span style="color:var(--accent);font-size:10px">auto</span></label><input type="time" id="if-close" oninput="updateIF(); validateIF()"></div>
+          <div class="field">
+            <label class="fl">Last meal date</label>
+            <select id="if-start-date" onchange="updateIF()">
+              <option value="yesterday">Yesterday</option>
+              <option value="today" selected>Today</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="fl">Last meal time</label>
+            <input type="time" id="if-start" oninput="updateIF()">
+          </div>
+          <div class="field">
+            <label class="fl">Stuck to window? <span style="color:var(--accent);font-size:10px">auto</span></label>
+            <div id="if-adhered-display" style="background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);padding:9px 12px;font-family:'DM Mono',monospace;font-size:13px;color:var(--text3);min-height:40px;">—</div>
+            <input type="hidden" id="if-adhered" value="">
+          </div>
         </div>
         <div id="if-bar-wrap" style="display:none"><div class="if-bar-bg"><div class="if-bar-fill" id="if-bar" style="width:0%"></div></div></div>
         <div class="if-stats" id="if-stats"></div>
@@ -551,42 +569,61 @@ function validateBPTime(){
 }
 
 function validateIF(){
-  const open=v('if-open'),close=v('if-close'),start=v('if-start');
+  const start=v('if-start');
+  const startDateVal=document.getElementById('if-start-date')?.value||'today';
   const msgEl=document.getElementById('val-if-msg');
   if(!msgEl)return true;
-  // check eating window <= 8hrs
-  if(open&&close){
-    const o=timeToMins(open),c=timeToMins(close);
-    const eatMins=c>=o?c-o:(1440-o)+c;
-    if(eatMins>480){
-      msgEl.className='val-msg warn';
-      msgEl.querySelector('span').textContent='Eating window is '+minsToHM(eatMins)+' — exceeds the 8hr target for 16:8.';
-      return false;
-    }
+  if(!start){msgEl.className='val-msg';return true;}
+  // Warn if last meal was after 7pm (outside window)
+  const lastMealMins=timeToMins(start);
+  if(startDateVal==='today'&&lastMealMins>1140){
+    msgEl.className='val-msg warn';
+    msgEl.querySelector('span').textContent='Last meal at '+start+' is after your 7:00 PM window close.';
+    return false;
+  }
+  // Warn if last meal was before 12pm and today (eating before window)
+  if(startDateVal==='today'&&lastMealMins<720){
+    msgEl.className='val-msg warn';
+    msgEl.querySelector('span').textContent='Last meal at '+start+' is before your 12:00 PM window open.';
+    return false;
   }
   msgEl.className='val-msg';
   return true;
 }
 
 function validateMealTimes(){
-  const open=v('if-open'),close=v('if-close');
   const msgEl=document.getElementById('val-meals-msg');
   if(!msgEl)return true;
-  if(!open||!close){msgEl.className='val-msg';return true;}
-  const o=timeToMins(open),c=timeToMins(close);
-  const outsideMeals=[];
+  // Fixed window 12:00–19:00
+  const OPEN=720, CLOSE=1140;
+  const insideMeals=[], outsideMeals=[];
   for(let i=1;i<=4;i++){
     const mt=v('m'+i+'t'),mf=v('m'+i+'f');
     if(!mt||!mf)continue;
     const m=timeToMins(mt);
-    let inside;
-    if(c>=o){inside=m>=o&&m<=c;}
-    else{inside=m>=o||m<=c;}
-    if(!inside)outsideMeals.push('Meal '+i+' ('+mt+')');
+    if(m<OPEN||m>CLOSE) outsideMeals.push('Meal '+i+' ('+mt+')');
+    else insideMeals.push('Meal '+i);
+  }
+  // Auto-populate adherence
+  const display=document.getElementById('if-adhered-display');
+  const hidden=document.getElementById('if-adhered');
+  const total=insideMeals.length+outsideMeals.length;
+  if(total===0){
+    if(display){display.textContent='—';display.style.color='var(--text3)';}
+    if(hidden)hidden.value='';
+  } else if(outsideMeals.length===0){
+    if(display){display.textContent='✅ Yes';display.style.color='var(--green)';}
+    if(hidden)hidden.value='yes';
+  } else if(insideMeals.length===0){
+    if(display){display.textContent='❌ No';display.style.color='var(--red)';}
+    if(hidden)hidden.value='no';
+  } else {
+    if(display){display.textContent='⚠️ Partially';display.style.color='var(--amber)';}
+    if(hidden)hidden.value='partial';
   }
   if(outsideMeals.length){
     msgEl.className='val-msg warn';
-    msgEl.querySelector('span').textContent=outsideMeals.join(', ')+' fall outside your eating window ('+open+'–'+close+').';
+    msgEl.querySelector('span').textContent=outsideMeals.join(', ')+' fall outside your eating window (12:00–19:00).';
     return false;
   }
   msgEl.className='val-msg';
@@ -632,20 +669,8 @@ function updateBP(){
 ['l1s','l2s','l3s','l1d','l2d','l3d','r1s','r2s','r3s','r1d','r2d','r3d'].forEach(id=>document.getElementById(id)?.addEventListener('input',updateBP));
 
 // IF AUTO-CALC WINDOW
-function autoCalcWindow(){
-  const startVal = v('if-start');
-  if(!startVal) return;
-  const startMins = timeToMins(startVal);
-  // open = start + 16h (mod 1440)
-  const openMins = (startMins + 960) % 1440;
-  // close = open + 8h (mod 1440)
-  const closeMins = (openMins + 480) % 1440;
-  const toTime = m => String(Math.floor(m/60)).padStart(2,'0') + ':' + String(m%60).padStart(2,'0');
-  document.getElementById('if-open').value = toTime(openMins);
-  document.getElementById('if-close').value = toTime(closeMins);
-  validateIF();
-  validateMealTimes();
-}
+// autoCalcWindow no longer needed — window is fixed 12:00–19:00
+function autoCalcWindow(){ updateIF(); }
 
 // WORKOUT TOGGLE
 function toggleWorkout(cb){
@@ -658,6 +683,7 @@ function toggleWorkout(cb){
     fields.classList.add('disabled');
     label.textContent = 'Lazy day 😅';
     initSleepSessions();
+  const isd=document.getElementById('if-start-date');if(isd)isd.value='today';const ifa=document.getElementById('if-adhered');if(ifa)ifa.value='';const ifad=document.getElementById('if-adhered-display');if(ifad){ifad.textContent='—';ifad.style.color='var(--text3)';}
   document.getElementById('workout-type').value='';
     document.getElementById('workout-dur').value='';
     document.getElementById('workout-int').value='';
@@ -665,25 +691,54 @@ function toggleWorkout(cb){
   }
 }
 
-// IF
+// IF — fixed window 12:00–19:00
 function updateIF(){
-  const s=timeToMins(v('if-start')),o=timeToMins(v('if-open')),c=timeToMins(v('if-close'));
+  const startVal=v('if-start');
+  const startDateVal=document.getElementById('if-start-date')?.value||'today';
   const bw=document.getElementById('if-bar-wrap'),bar=document.getElementById('if-bar'),stats=document.getElementById('if-stats'),badge=document.getElementById('if-badge-wrap');
-  if(s===null&&o===null){bw.style.display='none';stats.innerHTML='';badge.innerHTML='';return;}
+
+  // Fixed window
+  const WINDOW_OPEN=720;   // 12:00 in mins
+  const WINDOW_CLOSE=1140; // 19:00 in mins
+  const WINDOW_DUR=420;    // 7 hours
+  const TARGET_FAST=1020;  // 17 hours (19:00 to 12:00 next day)
+
+  if(!startVal){bw.style.display='none';badge.innerHTML='';stats.innerHTML='';return;}
   bw.style.display='block';
-  const fastMins=s!==null&&o!==null?(o>=s?o-s:(1440-s)+o):null;
-  const eatMins=o!==null&&c!==null?(c>=o?c-o:(1440-o)+c):null;
-  const TARGET=960;
+
+  const now=new Date();
+  const todayStr=now.toISOString().slice(0,10);
+  const yesterdayStr=new Date(now-86400000).toISOString().slice(0,10);
+  const baseDate=startDateVal==='yesterday'?yesterdayStr:todayStr;
+
+  // Fast duration = last meal → 12:00 today
+  const lastMealDt=new Date(baseDate+'T'+startVal);
+  const windowOpenDt=new Date(todayStr+'T12:00');
+  const fastMins=Math.round((windowOpenDt-lastMealDt)/60000);
+
+  // Current time relative to window
+  const nowMins=now.getHours()*60+now.getMinutes();
+  const isInWindow=nowMins>=WINDOW_OPEN&&nowMins<=WINDOW_CLOSE;
+  const isAfterWindow=nowMins>WINDOW_CLOSE;
+
   let pct=0,barCls='',statusCls='fasting',statusTxt='Fasting';
-  if(c!==null&&o!==null){pct=100;statusCls='done';statusTxt='Fast complete';}
-  else if(o!==null){pct=100;barCls='eating';statusCls='eating';statusTxt='Eating window open';}
-  else if(fastMins!==null){pct=Math.min(100,Math.round(fastMins/TARGET*100));}
+  if(isAfterWindow){pct=100;statusCls='done';statusTxt='Fast complete for today';}
+  else if(isInWindow){pct=100;barCls='eating';statusCls='eating';statusTxt='Eating window open';}
+  else if(fastMins>0){pct=Math.min(100,Math.round(fastMins/TARGET_FAST*100));}
+
   bar.style.width=pct+'%';bar.className='if-bar-fill'+(barCls?' '+barCls:'');
   badge.innerHTML=`<div class="if-badge ${statusCls}"><div class="if-dot"></div>${statusTxt}</div>`;
+
   let html='';
-  if(fastMins!==null)html+=`<div>Fast: <strong>${minsToHM(fastMins)}</strong> / 16h</div>`;
-  if(eatMins!==null)html+=`<div>Eating window: <strong>${minsToHM(eatMins)}</strong> / 8h</div>`;
-  if(fastMins!==null&&o===null)html+=`<div>To target: <strong>${minsToHM(TARGET-fastMins)}</strong></div>`;
+  if(fastMins>0){
+    html+=`<div>Fast so far: <strong>${minsToHM(fastMins)}</strong> / 17h target</div>`;
+    if(!isInWindow&&!isAfterWindow){
+      const rem=WINDOW_OPEN-nowMins;
+      if(rem>0)html+=`<div>Window opens in: <strong>${minsToHM(rem)}</strong></div>`;
+    }
+  }
+  html+=`<div>Last meal: <strong>${startDateVal==='yesterday'?'Yesterday':'Today'} at ${startVal}</strong></div>`;
+  if(isAfterWindow) html+=`<div style="color:var(--text3);font-size:11px">Next window opens tomorrow at 12:00 PM</div>`;
   stats.innerHTML=html;
 }
 
@@ -701,7 +756,7 @@ async function saveEntry(){
     l_sys:la||'', l_dia:ld||'', r_sys:ra||'', r_dia:rd||'',
     weight:v('weight'), waist:v('waist'), bodyfat:v('bmi'), rhr:v('rhr'),
     sleep_quality:v('sleep-quality'), sleep_sessions:getSleepSessionsJSON(),
-    if_start:v('if-start'), if_open:v('if-open'), if_close:v('if-close'),
+    if_start:(document.getElementById('if-start-date')?.value||'today')+' '+v('if-start'), if_open:'12:00', if_close:'19:00', if_adhered:document.getElementById('if-adhered')?.value||'',
     meal1_time:v('m1t'), meal1_food:v('m1f'), meal2_time:v('m2t'), meal2_food:v('m2f'),
     meal3_time:v('m3t'), meal3_food:v('m3f'), meal4_time:v('m4t'), meal4_food:v('m4f'),
     water:v('water'), sodium:v('sodium'), alcohol:v('alcohol'), caffeine:v('caffeine'),
@@ -721,7 +776,7 @@ async function saveEntry(){
 function clearForm(){
   ['l1s','l2s','l3s','l1d','l2d','l3d','l1p','l2p','l3p','r1s','r2s','r3s','r1d','r2d','r3d','r1p','r2p','r3p',
    'weight','waist','chest','hips','bmi','rhr','sleep-quality',
-   'if-start','if-open','if-close','m1t','m1f','m2t','m2f','m3t','m3f','m4t','m4f',
+   'if-start','m1t','m1f','m2t','m2f','m3t','m3f','m4t','m4f',
    'water','sodium','alcohol','caffeine','workout-dur','workout-int','energy','stress','focus','notes']
    .forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('workout-type').value='';document.getElementById('workout-loc').value='';const wt=document.getElementById('workout-toggle');if(wt){wt.checked=true;document.getElementById('workout-fields').classList.remove('disabled');document.getElementById('workout-toggle-label').textContent='Worked out today';}
@@ -1004,8 +1059,10 @@ function renderDailyReport(r){
       if(sess.length>1){const total=calcTotalSleepHours(sess);if(total>0)out.push(['Total sleep',minsToHM(Math.round(total*60))]);}
       return out.length?out:[['Sleep','—']];
     })(),
-    ['IF fast',fastDur||'—'],
-    ['Eating window',(eatOpen&&eatClose)?eatOpen+' – '+eatClose:'—'],
+    ['Eating window','12:00 PM – 7:00 PM (fixed)'],
+    ['Last meal',r[12]||'—'],
+    ['Fast duration',fastDur||'—'],
+    ['Stuck to window',r[15]||'—'],
     ['Water',r[23]?r[23]+' L':'—'],
     ['Sodium',r[24]?r[24]+' mg':'—'],
     ['Alcohol',r[25]?r[25]+' units':'—'],
