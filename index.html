@@ -1108,7 +1108,7 @@ async function loadDashboard(){
     const rawFiltered=raw.filter(r=>r[0]&&r[0]!=='');
     // Tag each entry with its raw index (position in sheet after header)
     rawFiltered.forEach((r,i)=>{ r._rawIndex=i; });
-    allEntries=[...rawFiltered].reverse(); // oldest first for charts
+    allEntries=[...rawFiltered].reverse(); // newest-first: [0]=most recent
     renderDashboard();
     loading.style.display='none';content.style.display='block';
   }catch(e){
@@ -1117,54 +1117,44 @@ async function loadDashboard(){
   }
 }
 
-function renderDashboard(){
-  const latest=allEntries[0]; // allEntries is newest-first, so [0] is most recent
-  document.getElementById('dash-subtitle').textContent=
-    'Last updated: '+cleanDate(latest[0])+(cleanTime(latest[1])?' at '+cleanTime(latest[1]):'');
-
-  // STAT CARDS
-  const lSys=parseFloat(latest[2]),lDia=parseFloat(latest[3]);
-  const rSys=parseFloat(latest[4]),rDia=parseFloat(latest[5]);
-  const weight=latest[6],mood=latest[29];
+function renderStatCards(r){
+  const lSys=parseFloat(r[2]),lDia=parseFloat(r[3]);
+  const rSys=parseFloat(r[4]),rDia=parseFloat(r[5]);
+  const weight=r[6],mood=cleanStr(r[29]);
   const highBP=(lSys>=140||lDia>=90||rSys>=140||rDia>=90);
+  // Last meal from this entry
+  const ifRaw=cleanStr(r[12]);
+  let lastMealStr='—', fastStr='', lastMealCls='';
+  if(ifRaw){
+    const parts=ifRaw.trim().split(' ');
+    const dateLabel=parts.length>1?parts[0]:'today';
+    const time=parts.length>1?parts[1]:parts[0];
+    const now=new Date();
+    const todayStr=now.toISOString().slice(0,10);
+    const yesterdayStr=new Date(now-86400000).toISOString().slice(0,10);
+    const baseDate=dateLabel==='yesterday'?yesterdayStr:todayStr;
+    if(time&&time.length===5){
+      const mealDt=new Date(baseDate+'T'+time);
+      const hrsAgo=Math.round((now-mealDt)/3600000*10)/10;
+      lastMealStr=time;
+      if(hrsAgo>=0){
+        fastStr=hrsAgo<1?'< 1hr ago':(hrsAgo<24?minsToHM(Math.round(hrsAgo*60))+' ago':'> 1 day ago');
+        lastMealCls=hrsAgo>=16?'green':'';
+      }
+    }
+  }
   const statsData=[
     {label:'BP (Left avg)',val:(lSys&&lDia)?lSys+'/'+lDia:'—',sub:'mmHg',cls:highBP?'red':''},
     {label:'BP (Right avg)',val:(rSys&&rDia)?rSys+'/'+rDia:'—',sub:'mmHg',cls:highBP?'red':''},
     {label:'Weight',val:weight||'—',sub:'kg',cls:''},
-    {label:'Mood',val:mood||'—',sub:'today',cls:''},
-    {label:'Energy',val:latest[30]||'—',sub:'/ 10',cls:''},
-    {label:'Sleep',val:latest[10]||'—',sub:'/ 10 quality',cls:''},
+    {label:'Mood',val:mood||'—',sub:cleanDate(r[0])||'',cls:''},
+    {label:'Energy',val:r[30]||'—',sub:'/ 10',cls:''},
+    {label:'Sleep',val:r[10]||'—',sub:'/ 10 quality',cls:''},
     {label:'BMI',
-      val:(()=>{const w=parseFloat(latest[6]);if(!w||isNaN(w))return'—';const b=latest[8]?parseFloat(latest[8]):Math.round(w/(1.97*1.97)*10)/10;return b;})(),
-      sub:(()=>{const w=parseFloat(latest[6]);if(!w||isNaN(w))return'body mass index';const b=latest[8]?parseFloat(latest[8]):Math.round(w/(1.97*1.97)*10)/10;if(b<18.5)return'Underweight';if(b<25)return'Normal ✓';if(b<30)return'Overweight';return'Obese';})(),
-      cls:(()=>{const w=parseFloat(latest[6]);if(!w||isNaN(w))return'';const b=latest[8]?parseFloat(latest[8]):Math.round(w/(1.97*1.97)*10)/10;if(b<18.5)return'';if(b<25)return'green';if(b<30)return'';return'red';})()},
-    {label:'Last meal',...(()=>{
-      // Find most recent last meal across all entries (most recent = last in allEntries)
-      let lastMealStr='—', fastStr='', cls='';
-      for(let i=allEntries.length-1;i>=0;i--){
-        const raw=cleanStr(allEntries[i][12]);
-        if(raw){
-          const parts=raw.trim().split(' ');
-          const dateLabel=parts.length>1?parts[0]:'today';
-          const time=parts.length>1?parts[1]:parts[0];
-          const now=new Date();
-          const todayStr=now.toISOString().slice(0,10);
-          const yesterdayStr=new Date(now-86400000).toISOString().slice(0,10);
-          const baseDate=dateLabel==='yesterday'?yesterdayStr:todayStr;
-          if(time&&time.match(/^\d{2}:\d{2}$/)){
-            const mealDt=new Date(baseDate+'T'+time);
-            const hrsAgo=Math.round((now-mealDt)/3600000*10)/10;
-            lastMealStr=time;
-            if(hrsAgo>=0){
-              fastStr=hrsAgo<1?'< 1hr ago':(hrsAgo<24?minsToHM(Math.round(hrsAgo*60))+' ago':'> 1 day ago');
-              cls=hrsAgo>=16?'green':'';
-            }
-          }
-          break;
-        }
-      }
-      return {val:lastMealStr, sub:fastStr||'last logged meal', cls};
-    })()},
+      val:(()=>{const w=parseFloat(r[6]);if(!w||isNaN(w))return'—';const b=r[8]?parseFloat(r[8]):Math.round(w/(1.97*1.97)*10)/10;return b;})(),
+      sub:(()=>{const w=parseFloat(r[6]);if(!w||isNaN(w))return'body mass index';const b=r[8]?parseFloat(r[8]):Math.round(w/(1.97*1.97)*10)/10;if(b<18.5)return'Underweight';if(b<25)return'Normal ✓';if(b<30)return'Overweight';return'Obese';})(),
+      cls:(()=>{const w=parseFloat(r[6]);if(!w||isNaN(w))return'';const b=r[8]?parseFloat(r[8]):Math.round(w/(1.97*1.97)*10)/10;if(b<18.5)return'';if(b<25)return'green';if(b<30)return'';return'red';})()},
+    {label:'Last meal',val:lastMealStr,sub:fastStr||'last logged meal',cls:lastMealCls},
   ];
   document.getElementById('stats-row').innerHTML=statsData.map(s=>`
     <div class="stat-card">
@@ -1172,6 +1162,13 @@ function renderDashboard(){
       <div class="stat-val ${s.cls}">${s.val}</div>
       <div class="stat-sub">${s.sub}</div>
     </div>`).join('');
+}
+
+function renderDashboard(){
+  const latest=allEntries[0];
+  document.getElementById('dash-subtitle').textContent=
+    'Last updated: '+cleanDate(latest[0])+(cleanTime(latest[1])?' at '+cleanTime(latest[1]):'');
+  renderStatCards(latest);
 
   // BP CHART
   const chartEntries=[...allEntries].reverse(); // oldest-first for charts
@@ -1214,7 +1211,9 @@ function renderDashboard(){
 function selectDay(idx,btn){
   document.querySelectorAll('.day-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  renderDailyReport(window._recentEntries[idx]);
+  const entry=window._recentEntries[idx];
+  renderDailyReport(entry);
+  renderStatCards(entry);
 }
 
 function loadEntryForEdit(r, rowIndex){
@@ -1478,7 +1477,7 @@ function renderDailyReport(r){
     ['Workout',r[27]==='Lazy day'?'<span class="lazy-tag">😅 Lazy day</span>':r[27]==='Rest day'?'<span class="rest-tag">💤 Rest day</span>':r[27]?(r[27]+(r[28]?' · '+r[28]+' min':'')):'—'],
     ['Mood',cleanStr(r[29])||'—'],
     ['Energy / Stress / Focus',(r[30]||'—')+' / '+(r[31]||'—')+' / '+(r[32]||'—')],
-    ['Meals',meals.length?`<div class="meals-list">${meals.map(m=>`<div>${m[0]?m[0]+' — ':''}${m[1]}</div>`).join('')}</div>`:'—'],
+    ['Meals',meals.length?`<div class="meals-list">${meals.map(m=>`<div>${m[0]?cleanTime(m[0])+' — ':''}${m[1]}</div>`).join('')}</div>`:'—'],
     ['Habits',habits.length?`<div class="habits-pills">${habits.map(h=>`<span class="habit-pill">${h}</span>`).join('')}</div>`:'—'],
     ['Notes',r[34]?`<span style="color:var(--text2);font-style:italic">${r[34]}</span>`:'—'],
   ];
