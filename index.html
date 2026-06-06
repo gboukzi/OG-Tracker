@@ -472,7 +472,7 @@ hr.div{border:none;border-top:1px solid var(--border);margin:14px 0;}
 <div class="toast" id="toast"></div>
 
 <script>
-const SHEET_SCRIPT = 'https://script.google.com/macros/s/AKfycbxNrqD77RmHGRyBGJZ8hH56qlaWTOkbfUGgvkdSYhrJpbFue_X1kKDuPrzk4E0pij3a/exec';
+const SHEET_SCRIPT = 'https://script.google.com/macros/s/AKfycbwV-kanMFYhOANfyjBs6MU0eg-uf9TBtBnP5lzQDFjMradIwAuz0R6SNK9BGgsz1O73/exec';
 const PASSWORD = 'OGGodMode';
 const HABITS_LIST = [
   {id:'meditation',label:'Meditation'},{id:'no-smoking',label:'No smoking'},
@@ -1112,7 +1112,7 @@ async function loadDashboard(){
   try{
     const res=await fetch(SHEET_SCRIPT+'?t='+Date.now());
     const raw=await res.json();
-    // raw is array of rows; each row: [date,time,l_sys,l_dia,r_sys,r_dia,weight,waist,bmi,rhr,sleep_q,sleep_sessions,if_start,if_open,if_close,m1t,m1f,m2t,m2f,m3t,m3f,m4t,m4f,water,sodium,alcohol,caffeine,wtype,wdur,mood,energy,stress,focus,habits,notes]
+    // raw is array of rows (password col stripped): [0:date,1:time,2:l_sys,3:l_dia,4:r_sys,5:r_dia,6:weight,7:waist,8:bmi,9:rhr,10:sleep_q,11:sleep_sessions,12:if_start,13:if_open,14:if_adhered,15:m1t,16:m1f,17:m2t,18:m2f,19:m3t,20:m3f,21:m4t,22:m4f,23:water,24:sodium,25:alcohol,26:caffeine,27:wtype,28:wdur,29:mood,30:energy,31:stress,32:focus,33:habits,34:notes,35:saved_at]
     if(!raw||!raw.length){loading.style.display='none';empty.style.display='block';return;}
     const rawFiltered=raw.filter(r=>r[0]&&r[0]!=='');
     // Tag each entry with its raw index (position in sheet after header)
