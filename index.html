@@ -536,6 +536,15 @@ function cleanStr(val){
   if(s.match(/^\d{4}-\d{2}-\d{2}T/))return'';
   return s;
 }
+function to12hr(t){
+  if(!t||!t.includes(':'))return t||'';
+  const [hStr,mStr]=t.split(':');
+  const h=parseInt(hStr),m=parseInt(mStr);
+  if(isNaN(h)||isNaN(m))return t;
+  const ampm=h>=12?'PM':'AM';
+  const h12=h%12||12;
+  return h12+':'+String(m).padStart(2,'0')+' '+ampm;
+}
 function bpAvg(vals){const n=vals.filter(x=>x!=='').map(Number);if(!n.length)return null;return Math.round(n.reduce((a,b)=>a+b,0)/n.length);}
 function timeToMins(t){if(!t)return null;const[h,m]=t.split(':').map(Number);return h*60+m;}
 function minsToHM(m){if(m===null||isNaN(m))return'--';const h=Math.floor(Math.abs(m)/60);const mn=Math.abs(m)%60;return h+'h '+String(mn).padStart(2,'0')+'m';}
@@ -791,7 +800,7 @@ function updateIF(){
       if(rem>0)html+=`<div>Window opens in: <strong>${minsToHM(rem)}</strong></div>`;
     }
   }
-  html+=`<div>Last meal: <strong>${startDateVal==='yesterday'?'Yesterday':'Today'} at ${startVal}</strong></div>`;
+  html+=`<div>Last meal: <strong>${startDateVal==='yesterday'?'Yesterday':'Today'} at ${to12hr(startVal)}</strong></div>`;
   if(isAfterWindow) html+=`<div style="color:var(--text3);font-size:11px">Next window opens tomorrow at 12:00 PM</div>`;
   stats.innerHTML=html;
 }
@@ -1122,22 +1131,21 @@ function renderStatCards(r){
   const rSys=parseFloat(r[4]),rDia=parseFloat(r[5]);
   const weight=r[6],mood=cleanStr(r[29]);
   const highBP=(lSys>=140||lDia>=90||rSys>=140||rDia>=90);
-  // Last meal — from the selected day's entry
+  // Last meal — pick the latest meal time from M1-M4 for this day
   let lastMealStr='—', fastStr='', lastMealCls='';
-  const ifRaw=cleanStr(r[12]);
-  if(ifRaw){
-    const parts=ifRaw.trim().split(' ');
-    const dateLabel=parts.length>1?parts[0]:'today';
-    const time=parts.length>1?parts[1]:parts[0];
+  const entryDate=cleanDate(r[0]);
+  const mealTimes=[r[16],r[18],r[20],r[22]] // M1t,M2t,M3t,M4t
+    .map(t=>cleanTime(t)||'')
+    .filter(t=>t&&t.length===5)
+    .sort()
+    .reverse(); // latest first
+  if(mealTimes.length){
+    const time=mealTimes[0];
     const now=new Date();
-    const todayStr=now.toISOString().slice(0,10);
-    const yesterdayStr=new Date(now-86400000).toISOString().slice(0,10);
-    const entryDate=cleanDate(r[0]);
-    const baseDate=dateLabel==='yesterday'?new Date(new Date(entryDate)-86400000).toISOString().slice(0,10):entryDate;
-    if(time&&time.length===5){
-      const mealDt=new Date(baseDate+'T'+time);
+    if(entryDate&&time){
+      const mealDt=new Date(entryDate+'T'+time);
       const hrsAgo=Math.round((now-mealDt)/3600000*10)/10;
-      lastMealStr=time;
+      lastMealStr=to12hr(time);
       if(hrsAgo>=0){
         fastStr=hrsAgo<1?'< 1hr ago':(hrsAgo<24?minsToHM(Math.round(hrsAgo*60))+' ago':'> 1 day ago');
         lastMealCls=hrsAgo>=16?'green':'';
@@ -1168,7 +1176,7 @@ function renderStatCards(r){
 function renderDashboard(){
   const latest=allEntries[0];
   document.getElementById('dash-subtitle').textContent=
-    'Last updated: '+cleanDate(latest[0])+(cleanTime(latest[1])?' at '+cleanTime(latest[1]):'');
+    'Last updated: '+cleanDate(latest[0])+(cleanTime(latest[1])?' at '+to12hr(cleanTime(latest[1])):'');
   renderStatCards(latest);
 
   // BP CHART
@@ -1314,7 +1322,8 @@ function loadEntryForEdit(r, rowIndex){
   [[r[15],r[16]],[r[17],r[18]],[r[19],r[20]],[r[21],r[22]]].forEach((m,i)=>{
     const ti=document.getElementById('m'+(i+1)+'t');
     const fi=document.getElementById('m'+(i+1)+'f');
-    if(ti)ti.value=cleanTime(m[0])||m[0]||'';
+    // cleanTime strips Sheets date prefix e.g. 1899-12-30T15:40:08.000Z → 15:40
+    if(ti)ti.value=cleanTime(String(m[0]))||'';
     if(fi)fi.value=m[1]||'';
   });
   validateMealTimes();
@@ -1408,7 +1417,7 @@ function renderDailyReport(r){
   }
 
   const rows=[
-    ['Date',cleanDate(r[0])+(cleanTime(r[1])?' · '+cleanTime(r[1]):'')],
+    ['Date',cleanDate(r[0])+(cleanTime(r[1])?' · '+to12hr(cleanTime(r[1])):'')],
     ['BP Left',(lSys&&lDia)?`<span class="bp-badge${highL?' high':''}">${lSys}/${lDia}</span> mmHg`:'—'],
     ['BP Right',(rSys&&rDia)?`<span class="bp-badge${highR?' high':''}">${rSys}/${rDia}</span> mmHg`:'—'],
     ['Weight',(()=>{
@@ -1438,7 +1447,7 @@ function renderDailyReport(r){
           const mins=(wd-sd)/60000;
           if(mins>0)dur=minsToHM(mins);
         }
-        const timeStr=s.sleepTime&&s.wakeTime?s.sleepTime+' → '+s.wakeTime:'';
+        const timeStr=s.sleepTime&&s.wakeTime?to12hr(s.sleepTime)+' → '+to12hr(s.wakeTime):'';
         const val=[timeStr,dur?'('+dur+')':''].filter(Boolean).join(' ')+(i===0?q:'');
         out.push([label,val||'—']);
       });
@@ -1453,7 +1462,7 @@ function renderDailyReport(r){
       const dateLabel=parts.length>1?parts[0]:'today';
       const time=parts.length>1?parts[1]:parts[0];
       const label=dateLabel==='yesterday'?'Yesterday':'Today';
-      return time?label+' at '+time:raw;
+      return time?label+' at '+to12hr(time):raw;
     })()],
     ['Fast duration',fastDur||'—'],
     ['Stuck to window',(()=>{
@@ -1490,7 +1499,7 @@ function renderDailyReport(r){
     ['Workout',r[27]==='Lazy day'?'<span class="lazy-tag">😅 Lazy day</span>':r[27]==='Rest day'?'<span class="rest-tag">💤 Rest day</span>':r[27]?(r[27]+(r[28]?' · '+r[28]+' min':'')):'—'],
     ['Mood',cleanStr(r[29])||'—'],
     ['Energy / Stress / Focus',(r[30]||'—')+' / '+(r[31]||'—')+' / '+(r[32]||'—')],
-    ['Meals',meals.length?`<div class="meals-list">${meals.map(m=>`<div>${m[0]?cleanTime(m[0])+' — ':''}${m[1]}</div>`).join('')}</div>`:'—'],
+    ['Meals',meals.length?`<div class="meals-list">${meals.map(m=>`<div>${m[0]?to12hr(cleanTime(m[0]))+' — ':''}${m[1]}</div>`).join('')}</div>`:'—'],
     ['Habits',habits.length?`<div class="habits-pills">${habits.map(h=>`<span class="habit-pill">${h}</span>`).join('')}</div>`:'—'],
     ['Notes',r[34]?`<span style="color:var(--text2);font-style:italic">${r[34]}</span>`:'—'],
   ];
