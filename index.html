@@ -1118,7 +1118,7 @@ async function loadDashboard(){
 }
 
 function renderDashboard(){
-  const latest=allEntries[allEntries.length-1];
+  const latest=allEntries[0]; // allEntries is newest-first, so [0] is most recent
   document.getElementById('dash-subtitle').textContent=
     'Last updated: '+cleanDate(latest[0])+(cleanTime(latest[1])?' at '+cleanTime(latest[1]):'');
 
