@@ -1134,7 +1134,7 @@ function renderStatCards(r){
   // Last meal — pick the latest meal time from M1-M4 for this day
   let lastMealStr='—', fastStr='', lastMealCls='';
   const entryDate=cleanDate(r[0]);
-  const mealTimes=[r[16],r[18],r[20],r[22]] // M1t,M2t,M3t,M4t
+  const mealTimes=[r[15],r[17],r[19],r[21]] // M1t,M2t,M3t,M4t
     .map(t=>cleanTime(t)||'')
     .filter(t=>t&&t.length===5)
     .sort()
