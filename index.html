@@ -1122,9 +1122,9 @@ function renderStatCards(r){
   const rSys=parseFloat(r[4]),rDia=parseFloat(r[5]);
   const weight=r[6],mood=cleanStr(r[29]);
   const highBP=(lSys>=140||lDia>=90||rSys>=140||rDia>=90);
-  // Last meal from this entry
-  const ifRaw=cleanStr(r[12]);
+  // Last meal — from the selected day's entry
   let lastMealStr='—', fastStr='', lastMealCls='';
+  const ifRaw=cleanStr(r[12]);
   if(ifRaw){
     const parts=ifRaw.trim().split(' ');
     const dateLabel=parts.length>1?parts[0]:'today';
@@ -1132,7 +1132,8 @@ function renderStatCards(r){
     const now=new Date();
     const todayStr=now.toISOString().slice(0,10);
     const yesterdayStr=new Date(now-86400000).toISOString().slice(0,10);
-    const baseDate=dateLabel==='yesterday'?yesterdayStr:todayStr;
+    const entryDate=cleanDate(r[0]);
+    const baseDate=dateLabel==='yesterday'?new Date(new Date(entryDate)-86400000).toISOString().slice(0,10):entryDate;
     if(time&&time.length===5){
       const mealDt=new Date(baseDate+'T'+time);
       const hrsAgo=Math.round((now-mealDt)/3600000*10)/10;
