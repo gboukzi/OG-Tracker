@@ -1174,11 +1174,12 @@ function renderDashboard(){
     </div>`).join('');
 
   // BP CHART
-  const labels=allEntries.map(r=>cleanDate(r[0]));
-  const lSysArr=allEntries.map(r=>parseFloat(r[2])||null);
-  const rSysArr=allEntries.map(r=>parseFloat(r[4])||null);
-  const lDiaArr=allEntries.map(r=>parseFloat(r[3])||null);
-  const rDiaArr=allEntries.map(r=>parseFloat(r[5])||null);
+  const chartEntries=[...allEntries].reverse(); // oldest-first for charts
+  const labels=chartEntries.map(r=>cleanDate(r[0]));
+  const lSysArr=chartEntries.map(r=>parseFloat(r[2])||null);
+  const rSysArr=chartEntries.map(r=>parseFloat(r[4])||null);
+  const lDiaArr=chartEntries.map(r=>parseFloat(r[3])||null);
+  const rDiaArr=chartEntries.map(r=>parseFloat(r[5])||null);
   const CHART_DEFAULTS={responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#8a8680',font:{family:'DM Mono',size:11}}}},scales:{x:{ticks:{color:'#555250',font:{family:'DM Mono',size:10}},grid:{color:'rgba(255,255,255,0.05)'}},y:{ticks:{color:'#555250',font:{family:'DM Mono',size:10}},grid:{color:'rgba(255,255,255,0.05)'}}}};
 
   if(bpChartInst)bpChartInst.destroy();
@@ -1197,13 +1198,13 @@ function renderDashboard(){
   if(weightChartInst)weightChartInst.destroy();
   weightChartInst=new Chart(document.getElementById('weight-chart'),{
     type:'line',
-    data:{labels,datasets:[{label:'Weight (kg)',data:allEntries.map(r=>parseFloat(r[6])||null),borderColor:'#c8f05a',backgroundColor:'rgba(200,240,90,0.08)',tension:0.3,pointRadius:3,fill:true}]},
+    data:{labels,datasets:[{label:'Weight (kg)',data:chartEntries.map(r=>parseFloat(r[6])||null),borderColor:'#c8f05a',backgroundColor:'rgba(200,240,90,0.08)',tension:0.3,pointRadius:3,fill:true}]},
     options:CHART_DEFAULTS
   });
 
   // DAY SELECTOR
   const sel=document.getElementById('day-selector');
-  const recent=[...allEntries].reverse().slice(0,10);
+  const recent=[...allEntries].slice(0,10); // allEntries already newest-first
   sel.innerHTML=recent.map((r,i)=>`<button class="day-btn${i===0?' active':''}" data-idx="${i}" onclick="selectDay(${i},this)">${cleanDate(r[0])}</button>`).join('');
   selectedDayIdx=0;
   renderDailyReport(recent[0]);
