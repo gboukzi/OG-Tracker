@@ -1101,7 +1101,7 @@ async function loadDashboard(){
   const empty=document.getElementById('dash-empty');
   loading.style.display='block';content.style.display='none';empty.style.display='none';
   try{
-    const res=await fetch(SHEET_SCRIPT);
+    const res=await fetch(SHEET_SCRIPT+'?t='+Date.now());
     const raw=await res.json();
     // raw is array of rows; each row: [date,time,l_sys,l_dia,r_sys,r_dia,weight,waist,bmi,rhr,sleep_q,sleep_sessions,if_start,if_open,if_close,m1t,m1f,m2t,m2f,m3t,m3f,m4t,m4f,water,sodium,alcohol,caffeine,wtype,wdur,mood,energy,stress,focus,habits,notes]
     if(!raw||!raw.length){loading.style.display='none';empty.style.display='block';return;}
@@ -1138,6 +1138,33 @@ function renderDashboard(){
       val:(()=>{const w=parseFloat(latest[6]);if(!w||isNaN(w))return'—';const b=latest[8]?parseFloat(latest[8]):Math.round(w/(1.97*1.97)*10)/10;return b;})(),
       sub:(()=>{const w=parseFloat(latest[6]);if(!w||isNaN(w))return'body mass index';const b=latest[8]?parseFloat(latest[8]):Math.round(w/(1.97*1.97)*10)/10;if(b<18.5)return'Underweight';if(b<25)return'Normal ✓';if(b<30)return'Overweight';return'Obese';})(),
       cls:(()=>{const w=parseFloat(latest[6]);if(!w||isNaN(w))return'';const b=latest[8]?parseFloat(latest[8]):Math.round(w/(1.97*1.97)*10)/10;if(b<18.5)return'';if(b<25)return'green';if(b<30)return'';return'red';})()},
+    {label:'Last meal',...(()=>{
+      // Find most recent last meal across all entries (most recent = last in allEntries)
+      let lastMealStr='—', fastStr='', cls='';
+      for(let i=allEntries.length-1;i>=0;i--){
+        const raw=cleanStr(allEntries[i][12]);
+        if(raw){
+          const parts=raw.trim().split(' ');
+          const dateLabel=parts.length>1?parts[0]:'today';
+          const time=parts.length>1?parts[1]:parts[0];
+          const now=new Date();
+          const todayStr=now.toISOString().slice(0,10);
+          const yesterdayStr=new Date(now-86400000).toISOString().slice(0,10);
+          const baseDate=dateLabel==='yesterday'?yesterdayStr:todayStr;
+          if(time&&time.match(/^\d{2}:\d{2}$/)){
+            const mealDt=new Date(baseDate+'T'+time);
+            const hrsAgo=Math.round((now-mealDt)/3600000*10)/10;
+            lastMealStr=time;
+            if(hrsAgo>=0){
+              fastStr=hrsAgo<1?'< 1hr ago':(hrsAgo<24?minsToHM(Math.round(hrsAgo*60))+' ago':'> 1 day ago');
+              cls=hrsAgo>=16?'green':'';
+            }
+          }
+          break;
+        }
+      }
+      return {val:lastMealStr, sub:fastStr||'last logged meal', cls};
+    })()},
   ];
   document.getElementById('stats-row').innerHTML=statsData.map(s=>`
     <div class="stat-card">
@@ -1406,7 +1433,15 @@ function renderDailyReport(r){
       return out.length?out:[['Sleep','—']];
     })(),
     ['Eating window','12:00 PM – 7:00 PM (fixed)'],
-    ['Last meal',cleanStr(r[12])||'—'],
+    ['Last meal',(()=>{
+      const raw=cleanStr(r[12]);
+      if(!raw)return'—';
+      const parts=raw.trim().split(' ');
+      const dateLabel=parts.length>1?parts[0]:'today';
+      const time=parts.length>1?parts[1]:parts[0];
+      const label=dateLabel==='yesterday'?'Yesterday':'Today';
+      return time?label+' at '+time:raw;
+    })()],
     ['Fast duration',fastDur||'—'],
     ['Stuck to window',(()=>{
       // Derive from meal times against fixed 12:00-19:00 window
