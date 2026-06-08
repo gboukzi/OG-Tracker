@@ -1085,7 +1085,12 @@ function getSleepSessionsJSON(){
 
 function parseSleepSessions(raw){
   if(!raw) return [];
-  try{ return JSON.parse(raw); }catch(e){ return []; }
+  try{
+    const s=String(raw).trim();
+    if(!s||s==='0'||s.match(/^\d{4}-\d{2}-\d{2}T/))return[];
+    const parsed=JSON.parse(s.replace(/```json|```/g,'').trim());
+    return Array.isArray(parsed)?parsed:[];
+  }catch(e){ return []; }
 }
 
 function calcTotalSleepHours(sessions){
