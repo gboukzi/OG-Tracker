@@ -983,9 +983,11 @@ function addSleepSession(){
   if(sleepSessionCount >= 4) return;
   sleepSessionCount++;
   const idx = sleepSessionCount;
-  const now = new Date();
+  // Use entry date as "today" so sleep dates are relative to the entry being logged
+  const entryDateVal = document.getElementById('entry-date')?.value;
+  const now = entryDateVal ? new Date(entryDateVal+'T12:00:00') : new Date();
   const todayVal = now.toISOString().slice(0,10);
-  const yesterdayVal = new Date(now-86400000).toISOString().slice(0,10);
+  const yesterdayVal = new Date(now.getTime()-86400000).toISOString().slice(0,10);
 
   const labels = ['Main sleep','Nap / early morning','Third session','Fourth session'];
   const label = labels[idx-1] || ('Session '+idx);
